@@ -137,6 +137,30 @@
         </div>
     </div>
 
+    <!-- Custom Dialog / Confirm Modal (No-Alert Guardrail) -->
+    <div id="custom-confirm-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl max-w-md w-full shadow-2xl p-6 space-y-4 transform scale-95 transition-all duration-300">
+            <div class="flex items-start gap-3">
+                <div class="p-2 bg-rose-50 text-rose-600 rounded-full shrink-0">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 id="confirm-title" class="text-lg font-bold text-slate-900">Are you sure?</h3>
+                    <p id="confirm-msg" class="text-sm text-slate-500 mt-1">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button id="btn-confirm-cancel" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition">Cancel</button>
+                <button id="btn-confirm-ok" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold rounded-lg transition shadow-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[70] space-y-2 pointer-events-none"></div>
+
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
@@ -165,6 +189,7 @@ Keep COMMENT to one short sentence.`;
         let supabaseClient = null;
         let databaseRecords = [];
         let activeTab = 'single';
+        let onConfirmAction = null;
 
         // DOM Elements
         const btnInitEngine = document.getElementById('btn-init-engine');
@@ -201,20 +226,106 @@ Keep COMMENT to one short sentence.`;
         const overlayTitle = document.getElementById('overlay-title');
         const overlayDesc = document.getElementById('overlay-desc');
 
+        // Confirm Modal Elements
+        const customConfirmModal = document.getElementById('custom-confirm-modal');
+        const confirmTitle = document.getElementById('confirm-title');
+        const confirmMsg = document.getElementById('confirm-msg');
+        const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
+        const btnConfirmOk = document.getElementById('btn-confirm-ok');
+        const toastContainer = document.getElementById('toast-container');
+
+        // Notification Utils
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `p-4 rounded-lg shadow-lg text-white font-medium text-xs pointer-events-auto flex items-center gap-2 transform translate-y-2 opacity-0 transition-all duration-300`;
+            
+            if (type === 'success') {
+                toast.classList.add('bg-emerald-600');
+            } else if (type === 'error') {
+                toast.classList.add('bg-rose-600');
+            } else {
+                toast.classList.add('bg-slate-800');
+            }
+            
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            
+            // Force reflow and animate
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showConfirm(title, message, callback) {
+            confirmTitle.textContent = title;
+            confirmMsg.textContent = message;
+            onConfirmAction = callback;
+            customConfirmModal.classList.remove('hidden');
+        }
+
+        function hideConfirm() {
+            customConfirmModal.classList.add('hidden');
+            onConfirmAction = null;
+        }
+
+        // App Logic
         function initApp() {
             loadLocalRecords();
             bindEvents();
+            checkAutoConnect();
         }
 
         function bindEvents() {
             tabSingle.addEventListener('click', () => switchTab('single'));
             tabBatch.addEventListener('click', () => switchTab('batch'));
             btnInitEngine.addEventListener('click', initializeWebLLMEngine);
-            btnConnectDb.addEventListener('click', configureSupabase);
+            btnConnectDb.addEventListener('click', () => configureSupabase());
             btnProcessSingle.addEventListener('click', handleSingleSubmission);
             btnProcessBatch.addEventListener('click', handleBatchSubmission);
             btnExportCsv.addEventListener('click', downloadCSVExport);
-            btnClearLocal.addEventListener('click', clearLocalDataPool);
+            btnClearLocal.addEventListener('click', () => {
+                showConfirm(
+                    "Clear all local records?", 
+                    "This will wipe all currently displayed results from LocalStorage.",
+                    clearLocalDataPool
+                );
+            });
+
+            btnConfirmCancel.addEventListener('click', hideConfirm);
+            btnConfirmOk.addEventListener('click', () => {
+                if (onConfirmAction) onConfirmAction();
+                hideConfirm();
+            });
+        }
+
+        // Automatic Supabase Configuration Check
+        async function checkAutoConnect() {
+            // Priority 1: URL Query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlParamUrl = urlParams.get('supabase_url');
+            const urlParamKey = urlParams.get('supabase_key');
+
+            if (urlParamUrl && urlParamKey) {
+                supabaseUrlEl.value = urlParamUrl;
+                supabaseKeyEl.value = urlParamKey;
+                await configureSupabase(urlParamUrl, urlParamKey, true);
+                return;
+            }
+
+            // Priority 2: LocalStorage cached credentials (auto connect)
+            const storedUrl = localStorage.getItem('supabase_config_url');
+            const storedKey = localStorage.getItem('supabase_config_key');
+
+            if (storedUrl && storedKey) {
+                supabaseUrlEl.value = storedUrl;
+                supabaseKeyEl.value = storedKey;
+                await configureSupabase(storedUrl, storedKey, false);
+            }
         }
 
         function switchTab(target) {
@@ -257,27 +368,28 @@ Keep COMMENT to one short sentence.`;
                 `;
                 btnProcessSingle.disabled = false;
                 btnProcessBatch.disabled = false;
+                showToast("AI model loaded and running on WebGPU!", "success");
             } catch (error) {
                 console.error(error);
-                alert("Failed to load model. Make sure WebGPU is enabled in your browser/hardware settings.");
+                showToast("Failed to load model. Ensure WebGPU is supported.", "error");
                 btnInitEngine.classList.remove('hidden');
                 engineLoadingUi.classList.add('hidden');
             }
         }
 
-        async function configureSupabase() {
-            const url = supabaseUrlEl.value.trim();
-            const key = supabaseKeyEl.value.trim();
+        async function configureSupabase(urlOverride = null, keyOverride = null, saveToStorage = true) {
+            const url = urlOverride || supabaseUrlEl.value.trim();
+            const key = keyOverride || supabaseKeyEl.value.trim();
 
             if (!url || !key) {
-                alert("Please fill in both Supabase URL and Anon Key.");
+                showToast("Please fill in both Supabase URL and Anon Key.", "error");
                 return;
             }
 
             try {
                 supabaseClient = supabase.createClient(url, key);
                 
-                // Test Connection
+                // Test Connection by attempting to select
                 const { data, error } = await supabaseClient
                     .from('morph_transparency')
                     .select('*')
@@ -285,10 +397,16 @@ Keep COMMENT to one short sentence.`;
 
                 if (error) throw error;
 
-                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-emerald-400";
-                dbStatusText.textContent = "Connected to Supabase";
+                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50";
+                dbStatusText.textContent = "Connected to Supabase (Auto Sync)";
                 
-                // Fetch existing records from cloud to populate interface
+                // Cache credentials to achieve continuous auto-connection on later visits
+                if (saveToStorage) {
+                    localStorage.setItem('supabase_config_url', url);
+                    localStorage.setItem('supabase_config_key', key);
+                }
+
+                // Fetch existing records from cloud database to populate table
                 const { data: cloudData, error: fetchError } = await supabaseClient
                     .from('morph_transparency')
                     .select('*')
@@ -299,10 +417,12 @@ Keep COMMENT to one short sentence.`;
                     refreshDataInterface();
                 }
 
+                showToast("Successfully connected and synced with Supabase!", "success");
+
             } catch (err) {
                 console.error("Supabase Connection Error: ", err);
-                alert("Supabase connected failed. Make sure your table 'morph_transparency' is created and has columns: target_word, baseword, rating, comment, created_at.");
-                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-rose-500";
+                showToast("Supabase connection failed. Verifying table structure...", "error");
+                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50";
                 dbStatusText.textContent = "Supabase Connection Error";
             }
         }
@@ -310,7 +430,7 @@ Keep COMMENT to one short sentence.`;
         async function handleSingleSubmission() {
             const word = inputWord.value.trim();
             const baseword = inputBaseword.value.trim();
-            if (!word || !baseword) return alert("Both fields are required.");
+            if (!word || !baseword) return showToast("Both fields are required.", "error");
 
             const normalizedWord = word.toLowerCase().trim();
             const normalizedBase = baseword.toLowerCase().trim();
@@ -318,7 +438,7 @@ Keep COMMENT to one short sentence.`;
             // Instant Cache Check (No processing overlay needed if already evaluated)
             const cached = findCachedEntry(normalizedWord, normalizedBase);
             if (cached) {
-                alert(`"${normalizedWord}" relative to "${normalizedBase}" is already evaluated (Rating: ${cached.rating.toFixed(1)}).`);
+                showToast(`"${normalizedWord}" / "${normalizedBase}" is already evaluated (Rating: ${cached.rating.toFixed(1)}).`);
                 return;
             }
 
@@ -352,7 +472,7 @@ Keep COMMENT to one short sentence.`;
             }
 
             if (queue.length === 0) {
-                alert("All items are already evaluated and cached or no valid pairs were found!");
+                showToast("All items are already evaluated or no valid pairs found!", "info");
                 return;
             }
 
@@ -364,13 +484,12 @@ Keep COMMENT to one short sentence.`;
             }
             inputBatchText.value = "";
             hideOverlay();
+            showToast("Batch processing completed successfully!", "success");
         }
 
         async function evaluatePair(word, baseword) {
             const userPrompt = `Target: ${word}\nBase: ${baseword}`;
 
-            // Critical Speed Tuning: max_completion_tokens: 50 instead of 180 (cuts down generation delay significantly)
-            // Added targeted stop sequences to halt model computation early.
             const response = await llmEngine.chat.completions.create({
                 messages: [
                     { role: "system", content: CLASSIFICATION_PROMPT },
@@ -480,7 +599,7 @@ Keep COMMENT to one short sentence.`;
         }
 
         function downloadCSVExport() {
-            if (!databaseRecords.length) return alert("No data to export.");
+            if (!databaseRecords.length) return showToast("No data to export.", "error");
             let csv = "Target Word,Baseword,Rating,Comment,Timestamp\n";
             databaseRecords.forEach(r => {
                 csv += `"${r.target_word}","${r.baseword}",${r.rating},"${r.comment.replace(/"/g, '""')}","${r.created_at}"\n`;
@@ -491,14 +610,14 @@ Keep COMMENT to one short sentence.`;
             a.href = url;
             a.download = `transparency_export_${new Date().toISOString().slice(0,10)}.csv`;
             a.click();
+            showToast("CSV export completed!", "success");
         }
 
         async function clearLocalDataPool() {
-            if (confirm("Clear all local data? (This does not delete data from your Supabase cloud DB if connected)")) {
-                localStorage.removeItem('morph_transparency_records_v1');
-                databaseRecords = [];
-                refreshDataInterface();
-            }
+            localStorage.removeItem('morph_transparency_records_v1');
+            databaseRecords = [];
+            refreshDataInterface();
+            showToast("Local cache cleared successfully.", "success");
         }
 
         function escapeHtml(text) {
