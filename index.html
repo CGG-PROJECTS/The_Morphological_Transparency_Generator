@@ -68,15 +68,24 @@
             <!-- In-Browser LLM Engine Manager -->
             <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl p-5 shadow-xl backdrop-blur-sm">
                 <h2 class="text-base font-bold text-white mb-2 flex items-center gap-2">
-                    ⚡ High-Speed Browser AI Engine
+                    🤖 Local AI Engine Setup
                 </h2>
                 <p class="text-xs text-slate-400 leading-relaxed mb-4">
-                    Powered by **Llama-3.2-1B-Instruct**. This optimized ultra-lightweight architecture is optimized to download instantly, use minimal graphics memory, and run ratings at near-instantaneous speeds.
+                    Run open-source linguistic evaluation models completely inside your browser via WebGPU. All processing power is local to your machine.
                 </p>
+
+                <!-- Model Selector Dropdown -->
+                <div class="mb-4">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Select Model Strength</label>
+                    <select id="model-selector" class="w-full bg-slate-950 border border-slate-850 text-xs text-slate-200 p-2.5 rounded-lg focus:outline-none focus:border-indigo-500">
+                        <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC" selected>Llama-3.2-1B (Blistering Speed, ~600MB VRAM)</option>
+                        <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama-3.2-3B (Higher Accuracy/Fidelity, ~2.2GB VRAM)</option>
+                    </select>
+                </div>
                 
                 <div id="engine-status-box" class="bg-slate-950 border border-slate-800/60 rounded-lg p-4 text-center">
                     <button id="btn-init-engine" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-emerald-900/20">
-                        Initialize High-Speed LLM
+                        Initialize Selected LLM
                     </button>
                     <div id="engine-loading-ui" class="hidden text-left space-y-2.5 mt-2">
                         <div class="flex justify-between text-[11px] font-semibold text-slate-400">
@@ -207,46 +216,42 @@
     <!-- Script Implementation Modules -->
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
-
-        // Hardcoding Llama 3.2 1B for blistering speeds inside standard browsers
-        const HARDCODED_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
         
         // Auto-configuration paths for Supabase
         const HARDCODED_SUPABASE_URL = "https://uymqletxnxgeofdcsyzs.supabase.co";
         const HARDCODED_SUPABASE_KEY = "sb_publishable_3RIcoA4SHc0GjlR0zl5KXQ_rtusUSVR";
         
         const CLASSIFICATION_PROMPT = `You are an expert in morphology and lexical semantics.
-Rate the **semantic transparency** of the target word relative to its baseword on a scale from **0 to 5**. The definitions are from the research article "How Many Words Are There in Printed School English?", William E. Nagy and Richard C. Anderson, Reading Research Quarterly, Vol. 19, No. 3 (Spring, 1984), pp. 304-330.
+Rate the **semantic transparency** of the target word relative to its baseword on a scale from **0 to 5**. 
+You must adhere strictly to these definitions (Nagy & Anderson, 1984):
 
-You must respond with EXACTLY this structure: [Rating] | [Short Comment]
-Do not write anything else. Do not write intros or explanations.
-Example: 4.0 | Derived from the root but the relationship is distantly connected.
+SEM 0 (Fully Transparent):
+Relationship is transparent. No semantic features in the target are not in the baseword, except for those predictable from part-of-speech changes (e.g., -ness).
+Examples: senselessly/senseless, chlorination/chlorinate, redness/red, planktonburgers/plankton, misinterpretation/misinterpret.
 
----
-SEM 0–5 definitions:
-SEM 0
-Relationship is fully semantically transparent. No additional semantic features.
-Examples: senselessly/senseless, chlorination/chlorinate
+SEM 1 (Minimal Context Required):
+Meaning inferrable from baseword with minimal context. Any extra semantic components in target are trivial/predictable.
+Examples: geneticist/genetic, fragmentary/fragment.
 
-SEM 1
-Meaning could be inferred from baseword with minimal context. Beyond baseword is trivial/predictable.
-Examples: geneticist/genetic, fragmentary/fragment
+SEM 2 (Reasonable Context Required):
+Meaning inferrable with reasonable, general context ("one exposure learning"). Target contains nontrivial features not in baseword but inferrable from general knowledge/context.
+Examples: foglights/fog, uncountables/uncountable, gunner/gun.
 
-SEM 2
-Meaning could be inferred with reasonable context.
-Examples: foglights/fog, uncountables/uncountable
+SEM 3 (Substantial Context Required):
+Meaning includes features not inferrable without substantial context.
+Examples: theorist/theory, password/pass, copperhead/copper+head.
 
-SEM 3
-Included semantic features not inferrable without substantial context.
-Examples: theorist/theory, password/pass, copperhead/copper
-
-SEM 4
-Meaning is related, but only distantly. Relationship not apparent without being pointed out.
+SEM 4 (Distant Relationship):
+Related but distantly. Connection not apparent without explanation. Unlikely to guess meaning from baseword alone.
 Examples: vicious/vice, farewell/well, motley/mottle, inertia/inert, saucer/sauce.
 
-SEM 5
-Lack of any discernible semantic connection.
-Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
+SEM 5 (No Discernible Connection):
+Lack of any semantic connection. Baseword is of no use.
+Examples: clerical/cleric, groovy/groove, dashboard/dash.
+
+---
+You must respond with EXACTLY this structure: [Rating] | [Short Comment]
+Do not write anything else. Do not write intros, explanations, or quotes.`;
 
         let llmEngine = null;
         let supabaseClient = null;
@@ -257,6 +262,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         let sessionRecords = [];  // Holds only words rated during this browser session
 
         // DOM Nodes lookup
+        const modelSelector = document.getElementById('model-selector');
         const btnInitEngine = document.getElementById('btn-init-engine');
         const engineLoadingUi = document.getElementById('engine-loading-ui');
         const engineProgressText = document.getElementById('engine-progress-text');
@@ -402,11 +408,13 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         }
 
         async function initializeWebLLMEngine() {
+            const selectedModel = modelSelector.value;
             btnInitEngine.classList.add('hidden');
             engineLoadingUi.classList.remove('hidden');
+            modelSelector.setAttribute('disabled', 'true');
 
             try {
-                llmEngine = await CreateMLCEngine(HARDCODED_MODEL, {
+                llmEngine = await CreateMLCEngine(selectedModel, {
                     initProgressCallback: (report) => {
                         const percent = Math.round(report.progress * 100);
                         engineProgressPct.innerText = `${percent}%`;
@@ -420,19 +428,20 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                         <svg class="w-4 h-4 text-emerald-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
                         </svg>
-                        Engine Ready: 1B High-Speed Active
+                        Engine Ready: Active
                     </div>
                 `;
                 
                 btnProcessSingle.removeAttribute('disabled');
                 btnProcessBatch.removeAttribute('disabled');
-                showMessage("High-Speed engine warmed up and ready.");
+                showMessage("Local AI engine is fully loaded and primed.");
 
             } catch (error) {
                 console.error("WebLLM Core Fault Exception:", error);
                 showMessage(`WebLLM failed: ensure your browser supports WebGPU.`, true);
                 btnInitEngine.classList.remove('hidden');
                 engineLoadingUi.classList.add('hidden');
+                modelSelector.removeAttribute('disabled');
             }
         }
 
@@ -709,6 +718,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             });
         }
 
+        // Color coding matrix categories according to transparency profiles definitions
         function getRatingColorClass(rating) {
             if (rating <= 1.0) return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
             if (rating <= 2.5) return "bg-sky-500/10 text-sky-400 border border-sky-500/20";
