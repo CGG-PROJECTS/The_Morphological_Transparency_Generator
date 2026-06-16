@@ -148,10 +148,12 @@
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-        // Hardcoding our single optimal, consumer-safe model footprint string identifier
         const HARDCODED_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
         
-        // System prompt adaptation embedding custom Nagy & Anderson (1984) semantic scale
+        // Auto-configuration profiles
+        const HARDCODED_SUPABASE_URL = "https://uymqletxnxgeofdcsyzs.supabase.co";
+        const HARDCODED_SUPABASE_KEY = "sb_publishable_3RIcoA4SHc0GjlR0zl5KXQ_rtusUSVR"
+        
         const CLASSIFICATION_PROMPT = `You are an expert in morphology and lexical semantics.
 Rate the **semantic transparency** of the target word relative to its baseword on a scale from **0 to 5**. The definitions are from the research article "How Many Words Are There in Printed School English?", William E. Nagy and Richard C. Anderson, Reading Research Quarterly, Vol. 19, No. 3 (Spring, 1984), pp. 304-330.
 
@@ -185,13 +187,11 @@ SEM 5
 This code is used for a lack of any discernible semantic connection—cases in which the meaning of the baseword would be of no use in learning or remembering the meaning of the target word.
 Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
 
-        // App States and Local Database Arrays Pool Cache Arrays
         let llmEngine = null;
         let supabaseClient = null;
         let activeTab = 'single';
         let databaseRecords = [];
 
-        // DOM Node Elements References Cache Map Lookup
         const btnInitEngine = document.getElementById('btn-init-engine');
         const engineLoadingUi = document.getElementById('engine-loading-ui');
         const engineProgressText = document.getElementById('engine-progress-text');
@@ -225,13 +225,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         const overlayTitle = document.getElementById('overlay-title');
         const overlayDesc = document.getElementById('overlay-desc');
 
-        // Application Startup Initialization Pipeline routines
         function initApp() {
             loadLocalRecords();
             bindEvents();
+
+            // Auto-fire connection string injection if values are assigned
+            if (HARDCODED_SUPABASE_URL && HARDCODED_SUPABASE_KEY) {
+                supabaseUrlInput.value = HARDCODED_SUPABASE_URL;
+                supabaseKeyInput.value = HARDCODED_SUPABASE_KEY;
+                configureSupabase();
+            }
         }
 
-        // Binds browser user interaction tracking mechanisms
         function bindEvents() {
             tabSingle.addEventListener('click', () => switchTab('single'));
             tabBatch.addEventListener('click', () => switchTab('batch'));
@@ -243,7 +248,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             btnClearLocal.addEventListener('click', clearLocalDataPool);
         }
 
-        // Handles switching tab visual UI panels
         function switchTab(target) {
             activeTab = target;
             if (target === 'single') {
@@ -259,7 +263,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
         }
 
-        // Setup and Connect with Supabase Serverless Cloud Architecture 
         async function configureSupabase() {
             const url = supabaseUrlInput.value.trim();
             const key = supabaseKeyInput.value.trim();
@@ -270,13 +273,9 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
 
             try {
-                // Initialize Client Instance SDK runtime
                 supabaseClient = window.supabase.createClient(url, key);
-                
                 dbStatusDot.className = "h-2 w-2 rounded-full bg-emerald-400";
                 dbStatusText.innerText = "Connected to Supabase Cluster Active Pools";
-                
-                // Pull down data array elements matching current tables records logs
                 await syncSupabaseRecords();
             } catch (err) {
                 console.error("Supabase Initialization Error Context: ", err);
@@ -287,7 +286,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
         }
 
-        // Initialize WebLLM engine with hardware accelerated context tracking
         async function initializeWebLLMEngine() {
             btnInitEngine.classList.add('hidden');
             engineLoadingUi.classList.remove('hidden');
@@ -302,7 +300,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                     }
                 });
 
-                // Activation complete states layout updates
                 engineLoadingUi.innerHTML = `
                     <div class="flex items-center gap-2 text-emerald-700 text-sm font-bold justify-center py-1">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -310,19 +307,17 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                     </div>
                 `;
                 
-                // Enable execution triggers inputs fields control vectors
                 btnProcessSingle.removeAttribute('disabled');
                 btnProcessBatch.removeAttribute('disabled');
 
             } catch (error) {
                 console.error("WebLLM Core Crash Fault Exception Context: ", error);
-                alert(`WebLLM Failed to initialize: ${error.message || error}. Please ensure your browser supports WebGPU (Chrome/Edge/Opera are natively compatible).`);
+                alert(`WebLLM Failed to initialize: ${error.message || error}. Please ensure your browser supports WebGPU.`);
                 btnInitEngine.classList.remove('hidden');
                 engineLoadingUi.classList.add('hidden');
             }
         }
 
-        // Handle a Single Submission Evaluation sequence 
         async function handleSingleSubmission() {
             const word = inputWord.value.trim();
             const baseword = inputBaseword.value.trim();
@@ -345,12 +340,10 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
         }
 
-        // Handle structural batch sequences processing queues blocks loops
         async function handleBatchSubmission() {
             const rawLines = inputBatchText.value.split('\n');
             const targetQueue = [];
 
-            // Read list lines checking structures configuration variants
             for (let rawLine of rawLines) {
                 let trimmed = rawLine.trim();
                 if (!trimmed) continue;
@@ -385,23 +378,19 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
         }
 
-        // Core business logic computing pairs, querying caches or executing LLM
         async function evaluatePair(word, baseword) {
-            // Norm and sanitize strings for consistency
             const normalizedWord = word.toLowerCase().trim();
             const normalizedBase = baseword.toLowerCase().trim();
 
-            // Check if word pair is already rated inside database cache array
             const existingMatch = findCachedEntry(normalizedWord, normalizedBase);
             if (existingMatch) {
                 console.log(`Match found in database logs cache for: ${normalizedWord}`);
-                return; // Duplicate tracking avoids redundant processing
+                return;
             }
 
             let rating = 0;
             let comment = "";
 
-            // Format evaluation instruction wrapper frame payload
             const userPromptText = `Now rate the following item:\nTarget word: ${normalizedWord}\nBaseword: ${normalizedBase}`;
             
             const messagePayload = [
@@ -409,17 +398,15 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 { role: "user", content: userPromptText }
             ];
 
-            // Trigger internal inline WebLLM generation call block
             const response = await llmEngine.chat.completions.create({
                 messages: messagePayload,
-                temperature: 0.0, // Eliminate stochastic noise variations
+                temperature: 0.0,
                 max_completion_tokens: 250
             });
 
             const llmOutputString = response.choices[0].message.content.trim();
             console.log("Raw Model System Output Matrix:\n", llmOutputString);
 
-            // Parsing engine token string stream segments lines
             const lines = llmOutputString.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             let parsedCorrectly = false;
 
@@ -438,19 +425,17 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 }
             }
 
-            // Fallback structural parsing if model returned alternative delimiters like comma or colon
             if (!parsedCorrectly) {
                 const manualMatchRating = llmOutputString.match(/\b([0-5](?:\.\d+)?)\b/);
                 if (manualMatchRating) {
                     rating = parseFloat(manualMatchRating[1]);
                     comment = llmOutputString.replace(manualMatchRating[0], "").replace(word, "").replace(baseword, "").trim();
                 } else {
-                    rating = 2.5; // Neutral error exception fallback assignment marker
-                    comment = "Parsing Exception: Structural validation fault on raw output string string format logs parsing fallback logic rules applied.";
+                    rating = 2.5;
+                    comment = "Parsing Exception: Structural validation fault on raw output string.";
                 }
             }
 
-            // Package output dataset item
             const datasetRecord = {
                 target_word: normalizedWord,
                 baseword: normalizedBase,
@@ -459,21 +444,16 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 created_at: new Date().toISOString()
             };
 
-            // Commit and store records
             await saveDatasetRecord(datasetRecord);
         }
 
-        // Search tracking if record is already evaluated within operational state arrays
         function findCachedEntry(w, b) {
             return databaseRecords.find(r => r.target_word === w && r.baseword === b);
         }
 
-        // Commits and persists data structures into arrays and cloud targets tables
         async function saveDatasetRecord(record) {
-            // Save to active local operating arrays index pools
             databaseRecords.unshift(record);
 
-            // Cloud syncing strategy layer if Supabase is active
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient
@@ -486,14 +466,10 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 }
             }
 
-            // Sync with web storage container state vectors
             localStorage.setItem('morph_transparency_records_v1', JSON.stringify(databaseRecords));
-            
-            // Re-render data viewport components
             refreshDataInterface();
         }
 
-        // Pull and Sync active datasets down from external connected clusters tables
         async function syncSupabaseRecords() {
             if(!supabaseClient) return;
 
@@ -515,7 +491,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
         }
 
-        // Load initialization files context maps from browser LocalStorage pools
         function loadLocalRecords() {
             const cachedString = localStorage.getItem('morph_transparency_records_v1');
             if (cachedString) {
@@ -528,9 +503,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             refreshDataInterface();
         }
 
-        // Rerender and recalculate table arrays metrics logs display nodes
         function refreshDataInterface() {
-            // Reset contents grid indices
             tableBody.innerHTML = "";
 
             if (databaseRecords.length === 0) {
@@ -542,7 +515,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
 
             let sumOfRatings = 0;
 
-            // Render table item loops components arrays nodes
             databaseRecords.forEach(rec => {
                 sumOfRatings += rec.rating;
 
@@ -564,7 +536,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 tableBody.appendChild(tr);
             });
 
-            // Calculate running statistical data vectors averages
             const totalCount = databaseRecords.length;
             const globalAverage = sumOfRatings / totalCount;
 
@@ -572,7 +543,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             statAvg.innerText = globalAverage.toFixed(2);
         }
 
-        // Color coding matrix categories according to transparency profiles definitions
         function getRatingColorClass(rating) {
             if (rating <= 1.0) return "bg-emerald-100 text-emerald-800";
             if (rating <= 2.5) return "bg-blue-100 text-blue-800";
@@ -580,47 +550,46 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             return "bg-rose-100 text-rose-800";
         }
 
-        // Compile state arrays memory to clean tab/csv string formatting files structures
         function downloadCSVExport() {
             if (databaseRecords.length === 0) {
-                alert("The evaluation log dataset pool matrix is currently empty.");
+                alert("No structural context records pools available to export.");
                 return;
             }
 
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Target Word,Baseword,SEM Rating,Linguistic Reasoning Comment\n";
+            let csvRows = ["Target Word,Baseword,SEM Rating,Linguistic Comment,Timestamp"];
+            for(let record of databaseRecords) {
+                const escapedComment = record.comment.replace(/"/g, '""');
+                csvRows.push(`"${record.target_word}","${record.baseword}",${record.rating},"${escapedComment}","${record.created_at}"`);
+            }
 
-            databaseRecords.forEach(r => {
-                // Escaping quotes tracking sequences inside output blocks fields strings
-                let cleanComment = r.comment.replace(/"/g, '""');
-                csvContent += `"${r.target_word}","${r.baseword}",${r.rating},"${cleanComment}"\n`;
-            });
-
-            const encodedUri = encodeURI(csvContent);
-            const hiddenDownloadAnchor = document.createElement("a");
-            hiddenDownloadAnchor.setAttribute("href", encodedUri);
-            hiddenDownloadAnchor.setAttribute("download", `morphological_transparency_norms_${new Date().toISOString().slice(0,10)}.csv`);
+            const csvBlob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
+            const csvUrl = URL.createObjectURL(csvBlob);
+            const hiddenDownloadAnchor = document.createElement('a');
+            hiddenDownloadAnchor.href = csvUrl;
+            hiddenDownloadAnchor.setAttribute('download', `transparency_norms_export_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(hiddenDownloadAnchor);
             hiddenDownloadAnchor.click();
             document.body.removeChild(hiddenDownloadAnchor);
         }
 
-        // Wipes local data cache components instances
         function clearLocalDataPool() {
-            if (confirm("Are you sure you want to clear your local evaluation history? This will not clear records on Supabase if connected.")) {
+            if (confirm("Are you sure you want to flush local operational storage caches? Cloud records inside active connected clusters will remain untouched.")) {
                 localStorage.removeItem('morph_transparency_records_v1');
                 databaseRecords = [];
                 refreshDataInterface();
             }
         }
 
-        // HTML escaping sanitization text string formatting parser logic
-        function escapeHtml(str) {
-            if(!str) return "";
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
-        // Execution overlay screen blocks modal triggers
         function showOverlay(title, desc) {
             overlayTitle.innerText = title;
             overlayDesc.innerText = desc;
@@ -631,7 +600,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             processingOverlay.classList.add('hidden');
         }
 
-        // Bind and activate current setup initialization context metrics profiles pipeline
+        // Initialize App Pipeline runtime on load completion context
         initApp();
     </script>
 </body>
