@@ -8,16 +8,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-50 font-sans text-gray-900 min-h-screen flex flex-col">
+
     <header class="bg-indigo-700 text-white shadow-md p-4">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-tight">Morphological Transparency Evaluator</h1>
-                <p class="text-indigo-200 text-sm">Nagy & Anderson (1984) • Faster WebLLM</p>
+                <p class="text-indigo-200 text-sm">Powered by Nagy & Anderson (1984) Framework & In-Browser WebLLM</p>
             </div>
             <div class="bg-indigo-800 p-2 rounded-lg border border-indigo-600 text-xs w-full md:w-auto">
                 <div class="flex items-center gap-2 mb-1">
                     <span id="db-status-dot" class="h-2 w-2 rounded-full bg-yellow-400"></span>
-                    <span id="db-status-text" class="font-medium">Using Browser LocalStorage</span>
+                    <span id="db-status-text" class="font-medium">Using Browser LocalStorage (Standalone)</span>
                 </div>
                 <div class="flex gap-2">
                     <input id="supabase-url" type="text" placeholder="Supabase URL" class="bg-indigo-900 text-white placeholder-indigo-400 p-1 rounded border border-indigo-700 focus:outline-none w-28">
@@ -29,18 +30,24 @@
     </header>
 
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
         <section class="lg:col-span-1 space-y-6">
+            
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">🤖 Local AI Engine</h2>
-                <p class="text-xs text-gray-500 mb-4">Llama-3.2-1B running in-browser via WebGPU</p>
-
+                <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    🤖 Local AI Engine
+                </h2>
+                <p class="text-xs text-gray-500 mb-4">
+                    Uses <strong>Llama-3.2-3B-Instruct</strong> running completely within your browser via WebGPU. The initial load takes a moment to download the model cache, but runs instantly offline thereafter.
+                </p>
+                
                 <div id="engine-status-box" class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
                     <button id="btn-init-engine" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
                         Initialize Local LLM
                     </button>
                     <div id="engine-loading-ui" class="hidden text-left space-y-2 mt-2">
                         <div class="flex justify-between text-xs font-semibold text-gray-600">
-                            <span id="engine-progress-text">Downloading Model...</span>
+                            <span id="engine-progress-text">Downloading Model Parameters...</span>
                             <span id="engine-progress-pct">0%</span>
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2.5">
@@ -52,8 +59,8 @@
 
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex border-b border-gray-200 mb-4">
-                    <button id="tab-single" class="flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600">Single Entry</button>
-                    <button id="tab-batch" class="flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600">Batch List</button>
+                    <button id="tab-single" class="flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 focus:outline-none">Single Entry</button>
+                    <button id="tab-batch" class="flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600 focus:outline-none">Batch List</button>
                 </div>
 
                 <div id="panel-single" class="space-y-4">
@@ -72,17 +79,19 @@
 
                 <div id="panel-batch" class="hidden space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Batch List — one pair per line</label>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Pasted Lexicon List (Word / Baseword)</label>
+                        <p class="text-[11px] text-gray-400 mb-1">Provide pairs separated by a comma or tab (one pair per line):</p>
                         <textarea id="input-batch-text" rows="6" placeholder="senselessly, senseless&#10;geneticist, genetic&#10;clerical, cleric" class="w-full border border-gray-300 rounded-lg p-2 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
                     </div>
                     <button id="btn-process-batch" disabled class="w-full bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition">
-                        Process Batch
+                        Process Batch Queue
                     </button>
                 </div>
             </div>
         </section>
 
         <section class="lg:col-span-2 space-y-6 flex flex-col">
+            
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                 <div class="p-3 bg-indigo-50 rounded-lg text-center">
                     <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Evaluated</p>
@@ -92,18 +101,19 @@
                     <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Avg SEM Rating</p>
                     <p id="stat-avg" class="text-2xl font-black text-emerald-900 mt-1">0.00</p>
                 </div>
-                <div class="p-3 bg-amber-50 rounded-lg text-center">
+                <div class="p-3 bg-amber-50 rounded-lg text-center flex flex-col justify-center items-center">
                     <button id="btn-export-csv" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-3 rounded-lg transition shadow-sm">
-                        Export CSV
+                        Export Norms Database (CSV)
                     </button>
                 </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow flex flex-col overflow-hidden">
                 <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-700 text-sm tracking-wide uppercase">Evaluation Results</h3>
+                    <h3 class="font-bold text-gray-700 text-sm tracking-wide uppercase">Evaluation Live Logs / Ratings Pool</h3>
                     <button id="btn-clear-local" class="text-xs text-red-500 hover:underline font-semibold">Clear Local Data</button>
                 </div>
+                
                 <div class="overflow-auto flex-grow max-h-[500px]">
                     <table class="w-full text-left border-collapse min-w-[500px]">
                         <thead>
@@ -111,12 +121,12 @@
                                 <th class="p-3">Target Word</th>
                                 <th class="p-3">Baseword</th>
                                 <th class="p-3 text-center w-24">SEM Rating</th>
-                                <th class="p-3">Explanation</th>
+                                <th class="p-3">LLM Explanation / Linguistic Comment</th>
                             </tr>
                         </thead>
                         <tbody id="table-body" class="divide-y divide-gray-100 text-sm">
                             <tr id="empty-table-row" class="text-center text-gray-400 py-8">
-                                <td colspan="4" class="p-8">Initialize the model and start evaluating words.</td>
+                                <td colspan="4" class="p-8">No ratings generated yet. Initialize the model and enter words to see analysis logs live.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -125,26 +135,30 @@
         </section>
     </main>
 
-    <div id="processing-overlay" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="bg-white p-6 rounded-xl max-w-sm w-full shadow-xl text-center space-y-4">
+    <div id="processing-overlay" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-xl max-w-sm w-full shadow-xl border border-gray-200 text-center space-y-4">
             <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto"></div>
-            <h3 id="overlay-title" class="font-bold text-gray-800">Processing...</h3>
-            <p id="overlay-desc" class="text-xs text-gray-500">Please keep this tab active.</p>
+            <div>
+                <h3 class="font-bold text-gray-800" id="overlay-title">Processing Matrix Queues</h3>
+                <p id="overlay-desc" class="text-xs text-gray-500 mt-1">Executing structural analysis. Please maintain this window active.</p>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-        const HARDCODED_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
-
-        const LOCAL_STORAGE_KEY = "morph_transparency_records_v1";
-        const MAX_VISIBLE_ROWS = 500;
-
-        const CLASSIFICATION_PROMPT = String.raw`You are an expert in morphology and lexical semantics.
+        const HARDCODED_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+        
+        // Auto-configuration profiles
+        const HARDCODED_SUPABASE_URL = "https://uymqletxnxgeofdcsyzs.supabase.co";
+        const HARDCODED_SUPABASE_KEY = "sb_publishable_3RIcoA4SHc0GjlR0zl5KXQ_rtusUSVR"
+        
+        const CLASSIFICATION_PROMPT = `You are an expert in morphology and lexical semantics.
 Rate the **semantic transparency** of the target word relative to its baseword on a scale from **0 to 5**. The definitions are from the research article "How Many Words Are There in Printed School English?", William E. Nagy and Richard C. Anderson, Reading Research Quarterly, Vol. 19, No. 3 (Spring, 1984), pp. 304-330.
 
- 
+**Output format (exactly one line, tab-separated):**
+TARGET_WORD\tRATING\tCOMMENT
 Where COMMENT is 1–2 short sentences explaining your reasoning.
 
 ---
@@ -171,407 +185,322 @@ Examples: vicious/vice, farewell/well, motley/mottle, inertia/inert, saucer/sauc
 
 SEM 5
 This code is used for a lack of any discernible semantic connection—cases in which the meaning of the baseword would be of no use in learning or remembering the meaning of the target word.
-Examples: clerical/cleric, groovy/groove, dashboard/dash.
-
-Output exactly this format (one line):
-TARGET\tRATING\tCOMMENT
-
-Keep COMMENT to one short sentence.`;
+Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
 
         let llmEngine = null;
         let supabaseClient = null;
+        let activeTab = 'single';
         let databaseRecords = [];
-        let recordCacheMap = new Map();
-        let activeTab = "single";
-        let saveTimer = null;
-        let renderTimer = null;
-        let isProcessing = false;
 
-        const btnInitEngine = document.getElementById("btn-init-engine");
-        const engineLoadingUi = document.getElementById("engine-loading-ui");
-        const engineProgressText = document.getElementById("engine-progress-text");
-        const engineProgressPct = document.getElementById("engine-progress-pct");
-        const engineProgressBar = document.getElementById("engine-progress-bar");
-
-        const tabSingle = document.getElementById("tab-single");
-        const tabBatch = document.getElementById("tab-batch");
-        const panelSingle = document.getElementById("panel-single");
-        const panelBatch = document.getElementById("panel-batch");
-
-        const btnProcessSingle = document.getElementById("btn-process-single");
-        const btnProcessBatch = document.getElementById("btn-process-batch");
-        const inputWord = document.getElementById("input-word");
-        const inputBaseword = document.getElementById("input-baseword");
-        const inputBatchText = document.getElementById("input-batch-text");
-
-        const tableBody = document.getElementById("table-body");
-        const emptyTableRow = document.getElementById("empty-table-row");
-        const statTotal = document.getElementById("stat-total");
-        const statAvg = document.getElementById("stat-avg");
-        const btnExportCsv = document.getElementById("btn-export-csv");
-        const btnClearLocal = document.getElementById("btn-clear-local");
-
-        const processingOverlay = document.getElementById("processing-overlay");
-        const overlayTitle = document.getElementById("overlay-title");
-        const overlayDesc = document.getElementById("overlay-desc");
-
-        const btnConnectDb = document.getElementById("btn-connect-db");
-        const supabaseUrlInput = document.getElementById("supabase-url");
-        const supabaseKeyInput = document.getElementById("supabase-key");
-        const dbStatusDot = document.getElementById("db-status-dot");
-        const dbStatusText = document.getElementById("db-status-text");
+        const btnInitEngine = document.getElementById('btn-init-engine');
+        const engineLoadingUi = document.getElementById('engine-loading-ui');
+        const engineProgressText = document.getElementById('engine-progress-text');
+        const engineProgressPct = document.getElementById('engine-progress-pct');
+        const engineProgressBar = document.getElementById('engine-progress-bar');
+        const btnConnectDb = document.getElementById('btn-connect-db');
+        const dbStatusDot = document.getElementById('db-status-dot');
+        const dbStatusText = document.getElementById('db-status-text');
+        const supabaseUrlInput = document.getElementById('supabase-url');
+        const supabaseKeyInput = document.getElementById('supabase-key');
+        
+        const tabSingle = document.getElementById('tab-single');
+        const tabBatch = document.getElementById('tab-batch');
+        const panelSingle = document.getElementById('panel-single');
+        const panelBatch = document.getElementById('panel-batch');
+        
+        const btnProcessSingle = document.getElementById('btn-process-single');
+        const btnProcessBatch = document.getElementById('btn-process-batch');
+        const inputWord = document.getElementById('input-word');
+        const inputBaseword = document.getElementById('input-baseword');
+        const inputBatchText = document.getElementById('input-batch-text');
+        
+        const tableBody = document.getElementById('table-body');
+        const emptyTableRow = document.getElementById('empty-table-row');
+        const statTotal = document.getElementById('stat-total');
+        const statAvg = document.getElementById('stat-avg');
+        const btnExportCsv = document.getElementById('btn-export-csv');
+        const btnClearLocal = document.getElementById('btn-clear-local');
+        
+        const processingOverlay = document.getElementById('processing-overlay');
+        const overlayTitle = document.getElementById('overlay-title');
+        const overlayDesc = document.getElementById('overlay-desc');
 
         function initApp() {
             loadLocalRecords();
             bindEvents();
+
+            // Auto-fire connection string injection if values are assigned
+            if (HARDCODED_SUPABASE_URL && HARDCODED_SUPABASE_KEY) {
+                supabaseUrlInput.value = HARDCODED_SUPABASE_URL;
+                supabaseKeyInput.value = HARDCODED_SUPABASE_KEY;
+                configureSupabase();
+            }
         }
 
         function bindEvents() {
-            tabSingle.addEventListener("click", () => switchTab("single"));
-            tabBatch.addEventListener("click", () => switchTab("batch"));
-            btnInitEngine.addEventListener("click", initializeWebLLMEngine);
-            btnProcessSingle.addEventListener("click", handleSingleSubmission);
-            btnProcessBatch.addEventListener("click", handleBatchSubmission);
-            btnExportCsv.addEventListener("click", downloadCSVExport);
-            btnClearLocal.addEventListener("click", clearLocalDataPool);
-
-            if (btnConnectDb) {
-                btnConnectDb.addEventListener("click", configureSupabase);
-            }
-
-            window.addEventListener("beforeunload", flushLocalSave);
+            tabSingle.addEventListener('click', () => switchTab('single'));
+            tabBatch.addEventListener('click', () => switchTab('batch'));
+            btnInitEngine.addEventListener('click', initializeWebLLMEngine);
+            btnConnectDb.addEventListener('click', configureSupabase);
+            btnProcessSingle.addEventListener('click', handleSingleSubmission);
+            btnProcessBatch.addEventListener('click', handleBatchSubmission);
+            btnExportCsv.addEventListener('click', downloadCSVExport);
+            btnClearLocal.addEventListener('click', clearLocalDataPool);
         }
 
         function switchTab(target) {
             activeTab = target;
-
-            if (target === "single") {
-                tabSingle.classList.add("text-indigo-600", "border-indigo-600");
-                tabSingle.classList.remove("text-gray-400", "border-transparent");
-
-                tabBatch.classList.remove("text-indigo-600", "border-indigo-600");
-                tabBatch.classList.add("text-gray-400", "border-transparent");
-
-                panelSingle.classList.remove("hidden");
-                panelBatch.classList.add("hidden");
+            if (target === 'single') {
+                tabSingle.className = "flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 focus:outline-none";
+                tabBatch.className = "flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600 focus:outline-none";
+                panelSingle.classList.remove('hidden');
+                panelBatch.classList.add('hidden');
             } else {
-                tabBatch.classList.add("text-indigo-600", "border-indigo-600");
-                tabBatch.classList.remove("text-gray-400", "border-transparent");
-
-                tabSingle.classList.remove("text-indigo-600", "border-indigo-600");
-                tabSingle.classList.add("text-gray-400", "border-transparent");
-
-                panelBatch.classList.remove("hidden");
-                panelSingle.classList.add("hidden");
+                tabBatch.className = "flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 focus:outline-none";
+                tabSingle.className = "flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600 focus:outline-none";
+                panelBatch.classList.remove('hidden');
+                panelSingle.classList.add('hidden');
             }
         }
 
-        async function initializeWebLLMEngine() {
-            if (!navigator.gpu) {
-                alert("WebGPU is not available in this browser. Try Chrome or Edge with WebGPU enabled.");
-                return;
-            }
-
-            btnInitEngine.classList.add("hidden");
-            engineLoadingUi.classList.remove("hidden");
-
-            try {
-                llmEngine = await CreateMLCEngine(HARDCODED_MODEL, {
-                    initProgressCallback: (report) => {
-                        const percent = Math.round((report.progress || 0) * 100);
-                        engineProgressPct.textContent = `${percent}%`;
-                        engineProgressBar.style.width = `${percent}%`;
-
-                        const text = report.text || "Loading...";
-                        engineProgressText.textContent = text.length > 46 ? text.substring(0, 46) + "..." : text;
-                    }
-                });
-
-                engineLoadingUi.innerHTML = `
-                    <div class="flex items-center gap-2 text-emerald-700 text-sm font-bold justify-center py-1">
-                        <span class="text-xl">✅</span> Engine Ready
-                    </div>
-                    <div class="text-center text-[10px] text-gray-500 break-all">${escapeHtml(HARDCODED_MODEL)}</div>
-                `;
-
-                btnProcessSingle.disabled = false;
-                btnProcessBatch.disabled = false;
-            } catch (error) {
-                console.error(error);
-                alert("Failed to load model. Make sure WebGPU is enabled in your browser.");
-                btnInitEngine.classList.remove("hidden");
-                engineLoadingUi.classList.add("hidden");
-            }
-        }
-
-        function configureSupabase() {
+        async function configureSupabase() {
             const url = supabaseUrlInput.value.trim();
             const key = supabaseKeyInput.value.trim();
-
-            if (!url || !key) {
-                alert("Enter both Supabase URL and anon key.");
+            
+            if(!url || !key) {
+                alert("Please provide valid Supabase Credentials to hook external tables.");
                 return;
             }
 
             try {
                 supabaseClient = window.supabase.createClient(url, key);
                 dbStatusDot.className = "h-2 w-2 rounded-full bg-emerald-400";
-                dbStatusText.textContent = "Supabase configured; local cache active";
-            } catch (error) {
-                console.error(error);
-                supabaseClient = null;
+                dbStatusText.innerText = "Connected to Supabase Cluster Active Pools";
+                await syncSupabaseRecords();
+            } catch (err) {
+                console.error("Supabase Initialization Error Context: ", err);
+                alert("Failed connecting to target Supabase server. Reverting to standalone Local storage arrays.");
                 dbStatusDot.className = "h-2 w-2 rounded-full bg-red-400";
-                dbStatusText.textContent = "Supabase connection failed";
+                dbStatusText.innerText = "Connection Failed Context Error";
+                supabaseClient = null;
+            }
+        }
+
+        async function initializeWebLLMEngine() {
+            btnInitEngine.classList.add('hidden');
+            engineLoadingUi.classList.remove('hidden');
+
+            try {
+                llmEngine = await CreateMLCEngine(HARDCODED_MODEL, {
+                    initProgressCallback: (report) => {
+                        const percent = Math.round(report.progress * 100);
+                        engineProgressPct.innerText = `${percent}%`;
+                        engineProgressBar.style.width = `${percent}%`;
+                        engineProgressText.innerText = report.text.length > 35 ? report.text.substring(0, 35) + "..." : report.text;
+                    }
+                });
+
+                engineLoadingUi.innerHTML = `
+                    <div class="flex items-center gap-2 text-emerald-700 text-sm font-bold justify-center py-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Engine Ready: ${HARDCODED_MODEL}
+                    </div>
+                `;
+                
+                btnProcessSingle.removeAttribute('disabled');
+                btnProcessBatch.removeAttribute('disabled');
+
+            } catch (error) {
+                console.error("WebLLM Core Crash Fault Exception Context: ", error);
+                alert(`WebLLM Failed to initialize: ${error.message || error}. Please ensure your browser supports WebGPU.`);
+                btnInitEngine.classList.remove('hidden');
+                engineLoadingUi.classList.add('hidden');
             }
         }
 
         async function handleSingleSubmission() {
-            if (!llmEngine || isProcessing) return;
-
             const word = inputWord.value.trim();
             const baseword = inputBaseword.value.trim();
 
             if (!word || !baseword) {
-                alert("Both fields are required.");
+                alert("Both target word and baseword values must be provided.");
                 return;
             }
 
+            showOverlay("Evaluating Pair", `Analyzing linguistic composition link structural parameters for: ${word} / ${baseword}`);
+            
             try {
-                isProcessing = true;
-                setProcessButtonsDisabled(true);
-                showOverlay("Evaluating", `${word} / ${baseword}`);
-
-                await evaluatePair(word, baseword, { refresh: true });
-
-                flushLocalSave();
+                await evaluatePair(word, baseword);
                 inputWord.value = "";
                 inputBaseword.value = "";
-            } catch (error) {
-                console.error(error);
-                alert("Evaluation failed. Check the console for details.");
+            } catch (ex) {
+                alert(`Processing failed: ${ex.message}`);
             } finally {
                 hideOverlay();
-                isProcessing = false;
-                setProcessButtonsDisabled(false);
             }
         }
 
         async function handleBatchSubmission() {
-            if (!llmEngine || isProcessing) return;
+            const rawLines = inputBatchText.value.split('\n');
+            const targetQueue = [];
 
-            const lines = inputBatchText.value.trim().split("\n");
-            const queue = [];
-
-            for (const line of lines) {
-                const trimmed = line.trim();
+            for (let rawLine of rawLines) {
+                let trimmed = rawLine.trim();
                 if (!trimmed) continue;
-
-                const parts = trimmed.includes("\t") ? trimmed.split("\t") : trimmed.split(",");
-
+                
+                let parts = trimmed.includes('\t') ? trimmed.split('\t') : trimmed.split(',');
                 if (parts.length >= 2) {
-                    const word = normalizeWord(parts[0]);
-                    const baseword = normalizeWord(parts[1]);
-
-                    if (!word || !baseword) continue;
-
-                    if (!findCachedEntry(word, baseword)) {
-                        queue.push({ word, baseword });
-                    }
+                    targetQueue.push({
+                        word: parts[0].trim(),
+                        baseword: parts[1].trim()
+                    });
                 }
             }
 
-            if (queue.length === 0) {
-                alert("No new valid pairs found. They may already be cached.");
+            if (targetQueue.length === 0) {
+                alert("Could not extract clean word pairs. Double-check your list format (comma or tab separated).");
                 return;
             }
 
+            showOverlay("Batch Running", `Evaluating index processing items elements lists. Total queue metrics: ${targetQueue.length} records.`);
+
             try {
-                isProcessing = true;
-                setProcessButtonsDisabled(true);
-                showOverlay("Batch Processing", `0 / ${queue.length}`);
-
-                for (let i = 0; i < queue.length; i++) {
-                    const item = queue[i];
-                    overlayDesc.textContent = `${i + 1} / ${queue.length} — ${item.word}`;
-
-                    await evaluatePair(item.word, item.baseword, { refresh: false });
-
-                    if (i % 3 === 0) {
-                        updateStatsOnly();
-                        await yieldToBrowser();
-                    }
+                for (let i = 0; i < targetQueue.length; i++) {
+                    const item = targetQueue[i];
+                    overlayDesc.innerText = `Processing element row [${i + 1}/${targetQueue.length}]: ${item.word} / ${item.baseword}`;
+                    await evaluatePair(item.word, item.baseword);
                 }
-
-                flushLocalSave();
-                refreshDataInterface();
-
                 inputBatchText.value = "";
-            } catch (error) {
-                console.error(error);
-                alert("Batch processing failed. Check the console for details.");
+            } catch (ex) {
+                alert(`Batch sequence stopped due to execution interruption exception error: ${ex.message}`);
             } finally {
                 hideOverlay();
-                isProcessing = false;
-                setProcessButtonsDisabled(false);
             }
         }
 
-        async function evaluatePair(word, baseword, options = {}) {
-            const { refresh = true } = options;
+        async function evaluatePair(word, baseword) {
+            const normalizedWord = word.toLowerCase().trim();
+            const normalizedBase = baseword.toLowerCase().trim();
 
-            const normalizedWord = normalizeWord(word);
-            const normalizedBase = normalizeWord(baseword);
+            const existingMatch = findCachedEntry(normalizedWord, normalizedBase);
+            if (existingMatch) {
+                console.log(`Match found in database logs cache for: ${normalizedWord}`);
+                return;
+            }
 
-            if (!normalizedWord || !normalizedBase) return null;
+            let rating = 0;
+            let comment = "";
 
-            const cached = findCachedEntry(normalizedWord, normalizedBase);
-            if (cached) return cached;
-
-            const userPrompt = `Target: ${normalizedWord}\nBase: ${normalizedBase}`;
+            const userPromptText = `Now rate the following item:\nTarget word: ${normalizedWord}\nBaseword: ${normalizedBase}`;
+            
+            const messagePayload = [
+                { role: "system", content: CLASSIFICATION_PROMPT },
+                { role: "user", content: userPromptText }
+            ];
 
             const response = await llmEngine.chat.completions.create({
-                messages: [
-                    { role: "system", content: CLASSIFICATION_PROMPT },
-                    { role: "user", content: userPrompt }
-                ],
-                temperature: 0,
-                max_tokens: 80
+                messages: messagePayload,
+                temperature: 0.0,
+                max_completion_tokens: 250
             });
 
-            const output = response.choices?.[0]?.message?.content?.trim() || "";
-            const parsed = parseLLMOutput(output);
+            const llmOutputString = response.choices[0].message.content.trim();
+            console.log("Raw Model System Output Matrix:\n", llmOutputString);
 
-            const record = {
+            const lines = llmOutputString.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            let parsedCorrectly = false;
+
+            for (const line of lines) {
+                if (line.includes('\t')) {
+                    const structuralTokens = line.split('\t');
+                    if (structuralTokens.length >= 2) {
+                        const parsedRating = parseFloat(structuralTokens[1].trim());
+                        if (!isNaN(parsedRating) && parsedRating >= 0 && parsedRating <= 5.5) {
+                            rating = parsedRating;
+                            comment = structuralTokens[2] ? structuralTokens[2].trim() : "No comment logic parsed.";
+                            parsedCorrectly = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!parsedCorrectly) {
+                const manualMatchRating = llmOutputString.match(/\b([0-5](?:\.\d+)?)\b/);
+                if (manualMatchRating) {
+                    rating = parseFloat(manualMatchRating[1]);
+                    comment = llmOutputString.replace(manualMatchRating[0], "").replace(word, "").replace(baseword, "").trim();
+                } else {
+                    rating = 2.5;
+                    comment = "Parsing Exception: Structural validation fault on raw output string.";
+                }
+            }
+
+            const datasetRecord = {
                 target_word: normalizedWord,
                 baseword: normalizedBase,
-                rating: Math.max(0, Math.min(5, parsed.rating)),
-                comment: parsed.comment,
+                rating: rating,
+                comment: comment,
                 created_at: new Date().toISOString()
             };
 
-            await saveDatasetRecord(record, { refresh });
-
-            return record;
+            await saveDatasetRecord(datasetRecord);
         }
 
-        function parseLLMOutput(output) {
-            let rating = 2.5;
-            let comment = "No comment parsed";
-
-            const firstLine = output
-                .split("\n")
-                .map(line => line.trim())
-                .find(Boolean) || output.trim();
-
-            const tabParts = firstLine.split("\t");
-
-            if (tabParts.length >= 3) {
-                const maybeRating = parseFloat(tabParts[1]);
-                if (!Number.isNaN(maybeRating)) {
-                    rating = maybeRating;
-                    comment = tabParts.slice(2).join(" ").trim() || comment;
-                    return { rating, comment };
-                }
-            }
-
-            const match = firstLine.match(/(?:^|[\s|,:-])([0-5](?:\.\d+)?)(?:[\s|,:-]+)(.+)$/);
-
-            if (match) {
-                const maybeRating = parseFloat(match[1]);
-                if (!Number.isNaN(maybeRating)) {
-                    rating = maybeRating;
-                    comment = match[2].trim() || comment;
-                }
-            }
-
-            return { rating, comment };
+        function findCachedEntry(w, b) {
+            return databaseRecords.find(r => r.target_word === w && r.baseword === b);
         }
 
-        function makeRecordKey(word, baseword) {
-            return `${normalizeWord(word)}|||${normalizeWord(baseword)}`;
-        }
-
-        function normalizeWord(value) {
-            return String(value || "").toLowerCase().trim();
-        }
-
-        function findCachedEntry(word, baseword) {
-            return recordCacheMap.get(makeRecordKey(word, baseword));
-        }
-
-        async function saveDatasetRecord(record, options = {}) {
-            const { refresh = true } = options;
-            const key = makeRecordKey(record.target_word, record.baseword);
-
-            if (recordCacheMap.has(key)) return;
-
+        async function saveDatasetRecord(record) {
             databaseRecords.unshift(record);
-            recordCacheMap.set(key, record);
-
-            scheduleLocalSave();
-
-            if (refresh) {
-                scheduleInterfaceRefresh();
-            }
 
             if (supabaseClient) {
-                saveToSupabaseInBackground(record);
-            }
-        }
-
-        function saveToSupabaseInBackground(record) {
-            supabaseClient
-                .from("morph_transparency_records")
-                .insert(record)
-                .then(({ error }) => {
-                    if (error) {
-                        console.warn("Supabase insert failed. LocalStorage copy was saved.", error.message);
-                    }
-                });
-        }
-
-        function loadLocalRecords() {
-            const cached = localStorage.getItem(LOCAL_STORAGE_KEY);
-
-            if (cached) {
                 try {
-                    databaseRecords = JSON.parse(cached);
-                    if (!Array.isArray(databaseRecords)) databaseRecords = [];
-                } catch {
-                    databaseRecords = [];
+                    const { error } = await supabaseClient
+                        .from('transparency_ratings')
+                        .insert([record]);
+                    
+                    if(error) throw error;
+                } catch(supabaseErr) {
+                    console.error("Supabase Write Sync Fault Exception Error context log: ", supabaseErr);
                 }
             }
 
-            recordCacheMap.clear();
-
-            for (const rec of databaseRecords) {
-                if (rec && rec.target_word && rec.baseword) {
-                    recordCacheMap.set(makeRecordKey(rec.target_word, rec.baseword), rec);
-                }
-            }
-
+            localStorage.setItem('morph_transparency_records_v1', JSON.stringify(databaseRecords));
             refreshDataInterface();
         }
 
-        function scheduleLocalSave() {
-            clearTimeout(saveTimer);
+        async function syncSupabaseRecords() {
+            if(!supabaseClient) return;
 
-            saveTimer = setTimeout(() => {
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(databaseRecords));
-            }, 300);
+            try {
+                let { data: transparency_ratings, error } = await supabaseClient
+                    .from('transparency_ratings')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if(error) throw error;
+
+                if(transparency_ratings && transparency_ratings.length > 0) {
+                    databaseRecords = transparency_ratings;
+                    localStorage.setItem('morph_transparency_records_v1', JSON.stringify(databaseRecords));
+                    refreshDataInterface();
+                }
+            } catch (err) {
+                console.error("Failed executing reading sync pipelines tables context error: ", err);
+            }
         }
 
-        function flushLocalSave() {
-            clearTimeout(saveTimer);
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(databaseRecords));
-        }
-
-        function scheduleInterfaceRefresh() {
-            clearTimeout(renderTimer);
-
-            renderTimer = setTimeout(() => {
-                refreshDataInterface();
-            }, 100);
+        function loadLocalRecords() {
+            const cachedString = localStorage.getItem('morph_transparency_records_v1');
+            if (cachedString) {
+                try {
+                    databaseRecords = JSON.parse(cachedString);
+                } catch (e) {
+                    databaseRecords = [];
+                }
+            }
+            refreshDataInterface();
         }
 
         function refreshDataInterface() {
@@ -579,131 +508,81 @@ Keep COMMENT to one short sentence.`;
 
             if (databaseRecords.length === 0) {
                 tableBody.appendChild(emptyTableRow);
-                statTotal.textContent = "0";
-                statAvg.textContent = "0.00";
+                statTotal.innerText = "0";
+                statAvg.innerText = "0.00";
                 return;
             }
 
-            let sum = 0;
+            let sumOfRatings = 0;
 
-            for (const rec of databaseRecords) {
-                sum += Number(rec.rating) || 0;
-            }
+            databaseRecords.forEach(rec => {
+                sumOfRatings += rec.rating;
 
-            const fragment = document.createDocumentFragment();
-            const visibleRecords = databaseRecords.slice(0, MAX_VISIBLE_ROWS);
-
-            for (const rec of visibleRecords) {
-                const tr = document.createElement("tr");
-                tr.className = "hover:bg-gray-50 transition border-b border-gray-100 text-xs";
-
-                const rating = Number(rec.rating) || 0;
-
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition border-b border-gray-100 font-mono text-xs";
+                
                 tr.innerHTML = `
-                    <td class="p-3 font-medium">${escapeHtml(rec.target_word)}</td>
-                    <td class="p-3 text-gray-600">${escapeHtml(rec.baseword)}</td>
+                    <td class="p-3 font-semibold text-gray-800 font-sans">${escapeHtml(rec.target_word)}</td>
+                    <td class="p-3 text-gray-600 font-sans">${escapeHtml(rec.baseword)}</td>
                     <td class="p-3 text-center">
-                        <span class="inline-block px-2.5 py-0.5 rounded font-bold ${getRatingColorClass(rating)}">
-                            ${rating.toFixed(1)}
+                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold font-mono ${getRatingColorClass(rec.rating)}">
+                            ${rec.rating.toFixed(1)}
                         </span>
                     </td>
-                    <td class="p-3 text-gray-600">${escapeHtml(rec.comment)}</td>
-                `;
-
-                fragment.appendChild(tr);
-            }
-
-            if (databaseRecords.length > MAX_VISIBLE_ROWS) {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td colspan="4" class="p-3 text-center text-xs text-gray-400">
-                        Showing latest ${MAX_VISIBLE_ROWS} rows. CSV export includes all ${databaseRecords.length} records.
+                    <td class="p-3 text-gray-500 font-sans text-xs max-w-sm truncate hover:text-clip hover:whitespace-normal" title="${escapeHtml(rec.comment)}">
+                        ${escapeHtml(rec.comment)}
                     </td>
                 `;
-                fragment.appendChild(tr);
-            }
+                tableBody.appendChild(tr);
+            });
 
-            tableBody.appendChild(fragment);
-            updateStatsOnly();
-        }
+            const totalCount = databaseRecords.length;
+            const globalAverage = sumOfRatings / totalCount;
 
-        function updateStatsOnly() {
-            if (databaseRecords.length === 0) {
-                statTotal.textContent = "0";
-                statAvg.textContent = "0.00";
-                return;
-            }
-
-            let sum = 0;
-
-            for (const rec of databaseRecords) {
-                sum += Number(rec.rating) || 0;
-            }
-
-            statTotal.textContent = databaseRecords.length;
-            statAvg.textContent = (sum / databaseRecords.length).toFixed(2);
+            statTotal.innerText = totalCount.toLocaleString();
+            statAvg.innerText = globalAverage.toFixed(2);
         }
 
         function getRatingColorClass(rating) {
-            const r = Number(rating) || 0;
-
-            if (r <= 1) return "bg-emerald-100 text-emerald-800";
-            if (r <= 2.5) return "bg-blue-100 text-blue-800";
-            if (r <= 4) return "bg-amber-100 text-amber-800";
+            if (rating <= 1.0) return "bg-emerald-100 text-emerald-800";
+            if (rating <= 2.5) return "bg-blue-100 text-blue-800";
+            if (rating <= 4.0) return "bg-amber-100 text-amber-800";
             return "bg-rose-100 text-rose-800";
         }
 
         function downloadCSVExport() {
-            if (!databaseRecords.length) {
-                alert("No data to export.");
+            if (databaseRecords.length === 0) {
+                alert("No structural context records pools available to export.");
                 return;
             }
 
-            let csv = "Target Word,Baseword,Rating,Comment,Timestamp\n";
-
-            for (const r of databaseRecords) {
-                csv += [
-                    csvEscape(r.target_word),
-                    csvEscape(r.baseword),
-                    csvEscape(r.rating),
-                    csvEscape(r.comment),
-                    csvEscape(r.created_at)
-                ].join(",") + "\n";
+            let csvRows = ["Target Word,Baseword,SEM Rating,Linguistic Comment,Timestamp"];
+            for(let record of databaseRecords) {
+                const escapedComment = record.comment.replace(/"/g, '""');
+                csvRows.push(`"${record.target_word}","${record.baseword}",${record.rating},"${escapedComment}","${record.created_at}"`);
             }
 
-            const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-
-            a.href = url;
-            a.download = `transparency_export_${new Date().toISOString().slice(0, 10)}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-
-            URL.revokeObjectURL(url);
-        }
-
-        function csvEscape(value) {
-            const text = String(value ?? "");
-            return `"${text.replace(/"/g, '""')}"`;
+            const csvBlob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
+            const csvUrl = URL.createObjectURL(csvBlob);
+            const hiddenDownloadAnchor = document.createElement('a');
+            hiddenDownloadAnchor.href = csvUrl;
+            hiddenDownloadAnchor.setAttribute('download', `transparency_norms_export_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(hiddenDownloadAnchor);
+            hiddenDownloadAnchor.click();
+            document.body.removeChild(hiddenDownloadAnchor);
         }
 
         function clearLocalDataPool() {
-            if (!confirm("Clear all local data?")) return;
-
-            clearTimeout(saveTimer);
-            clearTimeout(renderTimer);
-
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-            databaseRecords = [];
-            recordCacheMap.clear();
-
-            refreshDataInterface();
+            if (confirm("Are you sure you want to flush local operational storage caches? Cloud records inside active connected clusters will remain untouched.")) {
+                localStorage.removeItem('morph_transparency_records_v1');
+                databaseRecords = [];
+                refreshDataInterface();
+            }
         }
 
-        function escapeHtml(value) {
-            return String(value ?? "")
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
@@ -712,30 +591,16 @@ Keep COMMENT to one short sentence.`;
         }
 
         function showOverlay(title, desc) {
-            overlayTitle.textContent = title;
-            overlayDesc.textContent = desc;
-            processingOverlay.classList.remove("hidden");
+            overlayTitle.innerText = title;
+            overlayDesc.innerText = desc;
+            processingOverlay.classList.remove('hidden');
         }
 
         function hideOverlay() {
-            processingOverlay.classList.add("hidden");
+            processingOverlay.classList.add('hidden');
         }
 
-        function setProcessButtonsDisabled(disabled) {
-            if (!llmEngine) {
-                btnProcessSingle.disabled = true;
-                btnProcessBatch.disabled = true;
-                return;
-            }
-
-            btnProcessSingle.disabled = disabled;
-            btnProcessBatch.disabled = disabled;
-        }
-
-        function yieldToBrowser() {
-            return new Promise(resolve => setTimeout(resolve, 0));
-        }
-
+        // Initialize App Pipeline runtime on load completion context
         initApp();
     </script>
 </body>
