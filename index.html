@@ -24,7 +24,7 @@
             <!-- Connection Indicator & Settings Toggle -->
             <div class="flex items-center gap-3">
                 <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-xs">
-                    <span id="db-status-dot" class="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="db-status-dot" class="h-2.5 w-2.5 rounded-full bg-slate-600"></span>
                     <span id="db-status-text" class="font-medium text-slate-300 text-[11px]">Connecting to Cloud...</span>
                 </div>
                 <button id="btn-toggle-config" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1.5 rounded border border-slate-700 transition">
@@ -131,26 +131,45 @@
             
             <!-- Statistical Analytics Snapshot -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-950/40 border border-slate-800/80 p-4 rounded-xl shadow-xl backdrop-blur-sm">
+                <!-- Sync / Global Stats -->
                 <div class="p-3 bg-slate-950 border border-slate-800/60 rounded-lg text-center">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Evaluated</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Synced DB</p>
                     <p id="stat-total" class="text-2xl font-black text-indigo-400 mt-1">0</p>
+                    <p id="stat-avg-container" class="text-[10px] text-slate-500 mt-1">Avg: <span id="stat-avg" class="text-emerald-400 font-bold">0.00</span></p>
                 </div>
+                <!-- Session Stats -->
                 <div class="p-3 bg-slate-950 border border-slate-800/60 rounded-lg text-center">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg SEM Rating</p>
-                    <p id="stat-avg" class="text-2xl font-black text-emerald-400 mt-1">0.00</p>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Session</p>
+                    <p id="stat-session-total" class="text-2xl font-black text-purple-400 mt-1">0</p>
+                    <p id="stat-session-avg-container" class="text-[10px] text-slate-500 mt-1">Avg: <span id="stat-session-avg" class="text-emerald-400 font-bold">0.00</span></p>
                 </div>
-                <div class="p-3 bg-slate-950 border border-slate-800/60 rounded-lg text-center flex flex-col justify-center items-center">
-                    <button id="btn-export-csv" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold py-2 px-3 rounded transition shadow-lg hover:shadow-amber-950/20">
-                        Export Database (CSV)
+                <!-- Dual Download Actions -->
+                <div class="p-2 bg-slate-950 border border-slate-800/60 rounded-lg text-center flex flex-col justify-center gap-2">
+                    <button id="btn-export-session" class="w-full bg-violet-600 hover:bg-violet-500 text-white text-[10px] font-bold py-1.5 px-2.5 rounded transition shadow-sm">
+                        Export Session (CSV)
+                    </button>
+                    <button id="btn-export-csv" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold py-1.5 px-2.5 rounded transition shadow-sm">
+                        Export Full DB (CSV)
                     </button>
                 </div>
             </div>
 
             <!-- Live Ratings Database Logs Console -->
             <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl shadow-xl flex-grow flex flex-col overflow-hidden backdrop-blur-sm">
-                <div class="p-4 border-b border-slate-800 bg-slate-950/80 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-300 text-xs tracking-wider uppercase">Live Ratings Database Logs</h3>
-                    <button id="btn-clear-local" class="text-[11px] text-rose-400 hover:text-rose-300 transition font-medium">Clear Local Data Only</button>
+                <div class="p-4 border-b border-slate-800 bg-slate-950/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div class="flex items-center gap-3">
+                        <h3 class="font-bold text-slate-300 text-xs tracking-wider uppercase">Ratings Console</h3>
+                        <!-- Table View Tabs -->
+                        <div class="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[11px]">
+                            <button id="tab-view-all" class="px-2.5 py-1 rounded font-medium transition bg-slate-800 text-white">
+                                All Synced
+                            </button>
+                            <button id="tab-view-session" class="px-2.5 py-1 rounded font-medium transition text-slate-400 hover:text-white">
+                                Current Session
+                            </button>
+                        </div>
+                    </div>
+                    <button id="btn-clear-local" class="text-[11px] text-rose-400 hover:text-rose-300 transition font-medium">Clear Local Cache Only</button>
                 </div>
                 
                 <div class="overflow-auto flex-grow max-h-[500px]">
@@ -231,8 +250,11 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
 
         let llmEngine = null;
         let supabaseClient = null;
-        let activeTab = 'single';
-        let databaseRecords = [];
+        let activeTab = 'single'; // form input tab: 'single' | 'batch'
+        let tableFilter = 'all';  // datatable filter tab: 'all' | 'session'
+        
+        let databaseRecords = []; // Holds all historical + global synced records
+        let sessionRecords = [];  // Holds only words rated during this browser session
 
         // DOM Nodes lookup
         const btnInitEngine = document.getElementById('btn-init-engine');
@@ -253,6 +275,9 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         const panelSingle = document.getElementById('panel-single');
         const panelBatch = document.getElementById('panel-batch');
         
+        const tabViewAll = document.getElementById('tab-view-all');
+        const tabViewSession = document.getElementById('tab-view-session');
+        
         const btnProcessSingle = document.getElementById('btn-process-single');
         const btnProcessBatch = document.getElementById('btn-process-batch');
         const inputWord = document.getElementById('input-word');
@@ -261,9 +286,14 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         
         const tableBody = document.getElementById('table-body');
         const emptyTableRow = document.getElementById('empty-table-row');
+        
         const statTotal = document.getElementById('stat-total');
         const statAvg = document.getElementById('stat-avg');
+        const statSessionTotal = document.getElementById('stat-session-total');
+        const statSessionAvg = document.getElementById('stat-session-avg');
+        
         const btnExportCsv = document.getElementById('btn-export-csv');
+        const btnExportSession = document.getElementById('btn-export-session');
         const btnClearLocal = document.getElementById('btn-clear-local');
         
         const processingOverlay = document.getElementById('processing-overlay');
@@ -292,11 +322,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         function bindEvents() {
             tabSingle.addEventListener('click', () => switchTab('single'));
             tabBatch.addEventListener('click', () => switchTab('batch'));
+            
+            tabViewAll.addEventListener('click', () => switchTableView('all'));
+            tabViewSession.addEventListener('click', () => switchTableView('session'));
+            
             btnInitEngine.addEventListener('click', initializeWebLLMEngine);
             btnConnectDb.addEventListener('click', () => configureSupabase(false));
             btnProcessSingle.addEventListener('click', handleSingleSubmission);
             btnProcessBatch.addEventListener('click', handleBatchSubmission);
-            btnExportCsv.addEventListener('click', downloadCSVExport);
+            
+            btnExportCsv.addEventListener('click', () => downloadCSVExport(false));
+            btnExportSession.addEventListener('click', () => downloadCSVExport(true));
+            
             btnClearLocal.addEventListener('click', clearLocalDataPool);
             btnToggleConfig.addEventListener('click', () => configPanel.classList.toggle('hidden'));
         }
@@ -309,7 +346,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 notificationStyle.className = "p-3 rounded-lg text-xs font-semibold flex items-center justify-between bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
             }
             notificationBanner.classList.remove('hidden');
-            setTimeout(() => notificationBanner.classList.add('hidden'), 5000);
+            setTimeout(() => notificationBanner.classList.add('hidden'), 6000);
         }
 
         function switchTab(target) {
@@ -325,6 +362,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 panelBatch.classList.remove('hidden');
                 panelSingle.classList.add('hidden');
             }
+        }
+
+        function switchTableView(filter) {
+            tableFilter = filter;
+            if (filter === 'all') {
+                tabViewAll.className = "px-2.5 py-1 rounded font-medium transition bg-slate-800 text-white";
+                tabViewSession.className = "px-2.5 py-1 rounded font-medium transition text-slate-400 hover:text-white";
+            } else {
+                tabViewSession.className = "px-2.5 py-1 rounded font-medium transition bg-slate-800 text-white";
+                tabViewAll.className = "px-2.5 py-1 rounded font-medium transition text-slate-400 hover:text-white";
+            }
+            refreshDataInterface();
         }
 
         async function configureSupabase(isSilent = false) {
@@ -402,6 +451,8 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 await evaluatePair(word, baseword);
                 inputWord.value = "";
                 inputBaseword.value = "";
+                // Auto-switch view to 'session' when inserting new data so the user sees it immediately
+                switchTableView('session');
             } catch (ex) {
                 showMessage(`Execution fault: ${ex.message}`, true);
             } finally {
@@ -451,6 +502,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                     await evaluatePair(item.word, item.baseword);
                 }
                 inputBatchText.value = "";
+                switchTableView('session');
                 showMessage(`Successfully rated and synchronized ${targetQueue.length} word-baseword pairs.`);
             } catch (ex) {
                 showMessage(`Batch processing cut short: ${ex.message}`, true);
@@ -467,6 +519,11 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             const existingMatch = findCachedEntry(normalizedWord, normalizedBase);
             if (existingMatch) {
                 console.log(`Matching record located inside local memory for: ${normalizedWord} / ${normalizedBase}`);
+                // Add to current session tracker if not already inside sessionRecords
+                if (!sessionRecords.some(r => r.target_word === normalizedWord && r.baseword === normalizedBase)) {
+                    sessionRecords.unshift(existingMatch);
+                    refreshDataInterface();
+                }
                 return;
             }
 
@@ -522,6 +579,9 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 created_at: new Date().toISOString()
             };
 
+            // Capture into current session array
+            sessionRecords.unshift(datasetRecord);
+
             await saveDatasetRecord(datasetRecord);
         }
 
@@ -530,6 +590,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         }
 
         async function saveDatasetRecord(record) {
+            // Prepend to all historical logs
             databaseRecords.unshift(record);
 
             if (supabaseClient) {
@@ -538,9 +599,15 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                         .from('transparency_ratings')
                         .insert([record]);
                     
-                    if(error) throw error;
+                    if (error) {
+                        console.error("Supabase Write Error Context Object:", error);
+                        showMessage(`Database save failed: ${error.message}. Check SQL Table schema or Row-Level-Security (RLS) policies.`, true);
+                    } else {
+                        console.log("Database write verified successfully!");
+                    }
                 } catch(supabaseErr) {
-                    console.error("Supabase Write Sync Fault Error: ", supabaseErr);
+                    console.error("Supabase Exception Intercepted: ", supabaseErr);
+                    showMessage(`Database connection write crash: ${supabaseErr.message || supabaseErr}`, true);
                 }
             }
 
@@ -557,7 +624,11 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if(error) throw error;
+                if (error) {
+                    console.error("Supabase Query Error Context Object:", error);
+                    showMessage(`Could not read database records: ${error.message}`, true);
+                    return;
+                }
 
                 if(transparency_ratings && transparency_ratings.length > 0) {
                     databaseRecords = transparency_ratings;
@@ -566,6 +637,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 }
             } catch (err) {
                 console.error("Supabase Read/Sync Error: ", err);
+                showMessage(`Cloud read exception: ${err.message || err}`, true);
             }
         }
 
@@ -584,18 +656,40 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         function refreshDataInterface() {
             tableBody.innerHTML = "";
 
-            if (databaseRecords.length === 0) {
-                tableBody.appendChild(emptyTableRow);
-                statTotal.innerText = "0";
-                statAvg.innerText = "0.00";
+            // Calculate historical metric aggregates
+            let sumOfAllRatings = 0;
+            databaseRecords.forEach(rec => sumOfAllRatings += rec.rating);
+            const totalCount = databaseRecords.length;
+            const globalAverage = totalCount > 0 ? (sumOfAllRatings / totalCount) : 0;
+            
+            statTotal.innerText = totalCount.toLocaleString();
+            statAvg.innerText = globalAverage.toFixed(2);
+
+            // Calculate current session metric aggregates
+            let sumOfSessionRatings = 0;
+            sessionRecords.forEach(rec => sumOfSessionRatings += rec.rating);
+            const sessionCount = sessionRecords.length;
+            const sessionAverage = sessionCount > 0 ? (sumOfSessionRatings / sessionCount) : 0;
+
+            statSessionTotal.innerText = sessionCount.toLocaleString();
+            statSessionAvg.innerText = sessionAverage.toFixed(2);
+
+            // Select which array to output on screen based on the table tab selection
+            const recordsToRender = (tableFilter === 'session') ? sessionRecords : databaseRecords;
+
+            if (recordsToRender.length === 0) {
+                const noRecordsRow = document.createElement('tr');
+                noRecordsRow.className = "text-center text-slate-500 py-12";
+                noRecordsRow.innerHTML = `
+                    <td colspan="4" class="p-12 font-sans text-xs">
+                        No results mapped in ${tableFilter === 'session' ? 'this session' : 'the database'} yet.
+                    </td>
+                `;
+                tableBody.appendChild(noRecordsRow);
                 return;
             }
 
-            let sumOfRatings = 0;
-
-            databaseRecords.forEach(rec => {
-                sumOfRatings += rec.rating;
-
+            recordsToRender.forEach(rec => {
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-900/40 transition border-b border-slate-800/50 text-xs font-mono";
                 
@@ -613,12 +707,6 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 `;
                 tableBody.appendChild(tr);
             });
-
-            const totalCount = databaseRecords.length;
-            const globalAverage = sumOfRatings / totalCount;
-
-            statTotal.innerText = totalCount.toLocaleString();
-            statAvg.innerText = globalAverage.toFixed(2);
         }
 
         function getRatingColorClass(rating) {
@@ -628,14 +716,17 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
         }
 
-        function downloadCSVExport() {
-            if (databaseRecords.length === 0) {
-                showMessage("Database pool is empty. Nothing to export.", true);
+        function downloadCSVExport(onlySession = false) {
+            const recordsToExport = onlySession ? sessionRecords : databaseRecords;
+            const scopeName = onlySession ? "session" : "database";
+
+            if (recordsToExport.length === 0) {
+                showMessage(`Your selected export dataset (${scopeName}) is currently empty.`, true);
                 return;
             }
 
             let csvRows = ["Target Word,Baseword,SEM Rating,Linguistic Comment,Timestamp"];
-            for(let record of databaseRecords) {
+            for(let record of recordsToExport) {
                 const escapedComment = record.comment.replace(/"/g, '""');
                 csvRows.push(`"${record.target_word}","${record.baseword}",${record.rating},"${escapedComment}","${record.created_at}"`);
             }
@@ -644,16 +735,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             const csvUrl = URL.createObjectURL(csvBlob);
             const hiddenDownloadAnchor = document.createElement('a');
             hiddenDownloadAnchor.href = csvUrl;
-            hiddenDownloadAnchor.setAttribute('download', `transparency_norms_${new Date().toISOString().slice(0,10)}.csv`);
+            hiddenDownloadAnchor.setAttribute('download', `transparency_norms_${scopeName}_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(hiddenDownloadAnchor);
             hiddenDownloadAnchor.click();
             document.body.removeChild(hiddenDownloadAnchor);
+            showMessage(`Exported ${recordsToExport.length} records successfully.`);
         }
 
         function clearLocalDataPool() {
             if (confirm("Are you sure you want to flush local storage caches? Database records stored inside Supabase will remain untouched.")) {
                 localStorage.removeItem('morph_transparency_records_v1');
                 databaseRecords = [];
+                sessionRecords = [];
                 refreshDataInterface();
                 showMessage("Local cache successfully wiped.");
             }
