@@ -4,129 +4,168 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Morphological Transparency Evaluator</title>
+    <!-- Tailwind CSS for modern responsive styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900 min-h-screen flex flex-col">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
 
-    <header class="bg-indigo-700 text-white shadow-md p-4">
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-950/60 backdrop-blur-md sticky top-0 z-40 p-4">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <h1 class="text-2xl font-bold tracking-tight">Morphological Transparency Evaluator</h1>
-                <p class="text-indigo-200 text-sm">Powered by Nagy & Anderson (1984) Framework & In-Browser WebLLM</p>
+                <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                    Morphological Transparency Evaluator
+                </h1>
+                <p class="text-slate-400 text-xs mt-0.5">Nagy & Anderson (1984) Lexical Semantics Framework</p>
             </div>
-            <div class="bg-indigo-800 p-2 rounded-lg border border-indigo-600 text-xs w-full md:w-auto">
-                <div class="flex items-center gap-2 mb-1">
-                    <span id="db-status-dot" class="h-2 w-2 rounded-full bg-yellow-400"></span>
-                    <span id="db-status-text" class="font-medium">Using Browser LocalStorage (Standalone)</span>
+            
+            <!-- Connection Indicator & Settings Toggle -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-xs">
+                    <span id="db-status-dot" class="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="db-status-text" class="font-medium text-slate-300 text-[11px]">Connecting to Cloud...</span>
                 </div>
-                <div class="flex gap-2">
-                    <input id="supabase-url" type="text" placeholder="Supabase URL" class="bg-indigo-900 text-white placeholder-indigo-400 p-1 rounded border border-indigo-700 focus:outline-none w-28">
-                    <input id="supabase-key" type="password" placeholder="Anon Key" class="bg-indigo-900 text-white placeholder-indigo-400 p-1 rounded border border-indigo-700 focus:outline-none w-28">
-                    <button id="btn-connect-db" class="bg-indigo-600 hover:bg-indigo-500 px-2 py-1 rounded font-bold transition">Connect</button>
-                </div>
+                <button id="btn-toggle-config" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-2.5 py-1.5 rounded border border-slate-700 transition">
+                    Database Config
+                </button>
             </div>
         </div>
     </header>
 
+    <!-- Hidden Config Dropdown Panel -->
+    <div id="config-panel" class="hidden bg-slate-950 border-b border-slate-800 p-4 transition-all">
+        <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 items-end text-xs">
+            <div>
+                <label class="block text-slate-400 font-bold mb-1 uppercase tracking-wider">Supabase URL</label>
+                <input id="supabase-url" type="text" placeholder="https://..." class="w-full bg-slate-900 text-white placeholder-slate-600 p-2 rounded border border-slate-800 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-slate-400 font-bold mb-1 uppercase tracking-wider">Anon Public Key</label>
+                <input id="supabase-key" type="password" placeholder="Key..." class="w-full bg-slate-900 text-white placeholder-slate-600 p-2 rounded border border-slate-800 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
+            </div>
+            <button id="btn-connect-db" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold p-2 rounded transition">
+                Update DB Connection
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification Message Banner (Custom Toast UI) -->
+    <div id="notification-banner" class="hidden max-w-7xl w-full mx-auto px-4 mt-4">
+        <div class="p-3 rounded-lg text-xs font-semibold flex items-center justify-between" id="notification-style">
+            <span id="notification-text">System Ready</span>
+            <button onclick="document.getElementById('notification-banner').classList.add('hidden')" class="text-current opacity-70 hover:opacity-100">&times;</button>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         
+        <!-- Left Column: Local Engine Setup & Input Forms -->
         <section class="lg:col-span-1 space-y-6">
             
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    🤖 Local AI Engine
+            <!-- In-Browser LLM Engine Manager -->
+            <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl p-5 shadow-xl backdrop-blur-sm">
+                <h2 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+                    ⚡ High-Speed Browser AI Engine
                 </h2>
-                <p class="text-xs text-gray-500 mb-4">
-                    Uses <strong>Llama-3.2-3B-Instruct</strong> running completely within your browser via WebGPU. The initial load takes a moment to download the model cache, but runs instantly offline thereafter.
+                <p class="text-xs text-slate-400 leading-relaxed mb-4">
+                    Powered by **Llama-3.2-1B-Instruct**. This optimized ultra-lightweight architecture is optimized to download instantly, use minimal graphics memory, and run ratings at near-instantaneous speeds.
                 </p>
                 
-                <div id="engine-status-box" class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                    <button id="btn-init-engine" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
-                        Initialize Local LLM
+                <div id="engine-status-box" class="bg-slate-950 border border-slate-800/60 rounded-lg p-4 text-center">
+                    <button id="btn-init-engine" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-emerald-900/20">
+                        Initialize High-Speed LLM
                     </button>
-                    <div id="engine-loading-ui" class="hidden text-left space-y-2 mt-2">
-                        <div class="flex justify-between text-xs font-semibold text-gray-600">
-                            <span id="engine-progress-text">Downloading Model Parameters...</span>
+                    <div id="engine-loading-ui" class="hidden text-left space-y-2.5 mt-2">
+                        <div class="flex justify-between text-[11px] font-semibold text-slate-400">
+                            <span id="engine-progress-text">Pre-loading model cache...</span>
                             <span id="engine-progress-pct">0%</span>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div id="engine-progress-bar" class="bg-emerald-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        <div class="w-full bg-slate-800 rounded-full h-2">
+                            <div id="engine-progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div class="flex border-b border-gray-200 mb-4">
-                    <button id="tab-single" class="flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 focus:outline-none">Single Entry</button>
-                    <button id="tab-batch" class="flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600 focus:outline-none">Batch List</button>
+            <!-- Operational Interface Controller Panel -->
+            <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl p-5 shadow-xl backdrop-blur-sm">
+                <div class="flex border-b border-slate-800 mb-4 text-xs font-bold tracking-wider uppercase">
+                    <button id="tab-single" class="flex-1 pb-2.5 text-indigo-400 border-b-2 border-indigo-500 focus:outline-none">Single Word Pair</button>
+                    <button id="tab-batch" class="flex-1 pb-2.5 text-slate-500 border-b-2 border-transparent hover:text-slate-300 focus:outline-none">Batch List Queue</button>
                 </div>
 
+                <!-- Single Mode -->
                 <div id="panel-single" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Target Word</label>
-                        <input id="input-word" type="text" placeholder="e.g., senselessly" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Target Word</label>
+                        <input id="input-word" type="text" placeholder="e.g., booklet" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Baseword</label>
-                        <input id="input-baseword" type="text" placeholder="e.g., senseless" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Baseword</label>
+                        <input id="input-baseword" type="text" placeholder="e.g., book" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none">
                     </div>
-                    <button id="btn-process-single" disabled class="w-full bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition">
-                        Evaluate Pair
+                    <button id="btn-process-single" disabled class="w-full bg-indigo-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed hover:bg-indigo-500 text-white text-xs font-bold py-3 rounded-lg transition-all">
+                        Run Model Analysis
                     </button>
                 </div>
 
+                <!-- Batch Queue Mode -->
                 <div id="panel-batch" class="hidden space-y-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Pasted Lexicon List (Word / Baseword)</label>
-                        <p class="text-[11px] text-gray-400 mb-1">Provide pairs separated by a comma or tab (one pair per line):</p>
-                        <textarea id="input-batch-text" rows="6" placeholder="senselessly, senseless&#10;geneticist, genetic&#10;clerical, cleric" class="w-full border border-gray-300 rounded-lg p-2 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Batch Inputs List</label>
+                        <p class="text-[10px] text-slate-500 mb-2">Paste word pairs (separated by comma, colon, or tab, one pair per line):</p>
+                        <textarea id="input-batch-text" rows="7" placeholder="senselessly, senseless&#10;clerical, cleric&#10;geneticist, genetic" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 font-mono text-xs text-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"></textarea>
                     </div>
-                    <button id="btn-process-batch" disabled class="w-full bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-500 text-white font-bold py-2 rounded-lg transition">
+                    <button id="btn-process-batch" disabled class="w-full bg-indigo-600 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed hover:bg-indigo-500 text-white text-xs font-bold py-3 rounded-lg transition-all">
                         Process Batch Queue
                     </button>
                 </div>
             </div>
         </section>
 
+        <!-- Right Column: Live Logs Database & Metrics Tracker -->
         <section class="lg:col-span-2 space-y-6 flex flex-col">
             
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <div class="p-3 bg-indigo-50 rounded-lg text-center">
-                    <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Total Evaluated</p>
-                    <p id="stat-total" class="text-2xl font-black text-indigo-900 mt-1">0</p>
+            <!-- Statistical Analytics Snapshot -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-950/40 border border-slate-800/80 p-4 rounded-xl shadow-xl backdrop-blur-sm">
+                <div class="p-3 bg-slate-950 border border-slate-800/60 rounded-lg text-center">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Evaluated</p>
+                    <p id="stat-total" class="text-2xl font-black text-indigo-400 mt-1">0</p>
                 </div>
-                <div class="p-3 bg-emerald-50 rounded-lg text-center">
-                    <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Avg SEM Rating</p>
-                    <p id="stat-avg" class="text-2xl font-black text-emerald-900 mt-1">0.00</p>
+                <div class="p-3 bg-slate-950 border border-slate-800/60 rounded-lg text-center">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg SEM Rating</p>
+                    <p id="stat-avg" class="text-2xl font-black text-emerald-400 mt-1">0.00</p>
                 </div>
-                <div class="p-3 bg-amber-50 rounded-lg text-center flex flex-col justify-center items-center">
-                    <button id="btn-export-csv" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 px-3 rounded-lg transition shadow-sm">
-                        Export Norms Database (CSV)
+                <div class="p-3 bg-slate-950 border border-slate-800/60 rounded-lg text-center flex flex-col justify-center items-center">
+                    <button id="btn-export-csv" class="w-full bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-bold py-2 px-3 rounded transition shadow-lg hover:shadow-amber-950/20">
+                        Export Database (CSV)
                     </button>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex-grow flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                    <h3 class="font-bold text-gray-700 text-sm tracking-wide uppercase">Evaluation Live Logs / Ratings Pool</h3>
-                    <button id="btn-clear-local" class="text-xs text-red-500 hover:underline font-semibold">Clear Local Data</button>
+            <!-- Live Ratings Database Logs Console -->
+            <div class="bg-slate-950/40 border border-slate-800/80 rounded-xl shadow-xl flex-grow flex flex-col overflow-hidden backdrop-blur-sm">
+                <div class="p-4 border-b border-slate-800 bg-slate-950/80 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-300 text-xs tracking-wider uppercase">Live Ratings Database Logs</h3>
+                    <button id="btn-clear-local" class="text-[11px] text-rose-400 hover:text-rose-300 transition font-medium">Clear Local Data Only</button>
                 </div>
                 
                 <div class="overflow-auto flex-grow max-h-[500px]">
                     <table class="w-full text-left border-collapse min-w-[500px]">
                         <thead>
-                            <tr class="bg-gray-100 border-b border-gray-200 text-xs font-bold text-gray-600 uppercase tracking-wider sticky top-0 z-10">
-                                <th class="p-3">Target Word</th>
-                                <th class="p-3">Baseword</th>
-                                <th class="p-3 text-center w-24">SEM Rating</th>
-                                <th class="p-3">LLM Explanation / Linguistic Comment</th>
+                            <tr class="bg-slate-950 border-b border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider sticky top-0 z-10">
+                                <th class="p-3.5">Target Word</th>
+                                <th class="p-3.5">Baseword</th>
+                                <th class="p-3.5 text-center w-28">SEM Rating</th>
+                                <th class="p-3.5">LLM Explanation & Reasonings</th>
                             </tr>
                         </thead>
-                        <tbody id="table-body" class="divide-y divide-gray-100 text-sm">
-                            <tr id="empty-table-row" class="text-center text-gray-400 py-8">
-                                <td colspan="4" class="p-8">No ratings generated yet. Initialize the model and enter words to see analysis logs live.</td>
+                        <tbody id="table-body" class="divide-y divide-slate-800/60 text-xs text-slate-300 font-mono">
+                            <tr id="empty-table-row" class="text-center text-slate-500 py-12">
+                                <td colspan="4" class="p-12 font-sans">No ratings stored. Initialize your engine and test any pair above to initiate.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -135,56 +174,59 @@
         </section>
     </main>
 
-    <div id="processing-overlay" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="bg-white p-6 rounded-xl max-w-sm w-full shadow-xl border border-gray-200 text-center space-y-4">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mx-auto"></div>
+    <!-- UI Overlay for Executing Loops -->
+    <div id="processing-overlay" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center">
+        <div class="bg-slate-900 p-6 rounded-xl max-w-sm w-full shadow-2xl border border-slate-800 text-center space-y-4">
+            <div class="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent mx-auto"></div>
             <div>
-                <h3 class="font-bold text-gray-800" id="overlay-title">Processing Matrix Queues</h3>
-                <p id="overlay-desc" class="text-xs text-gray-500 mt-1">Executing structural analysis. Please maintain this window active.</p>
+                <h3 class="font-bold text-white text-sm" id="overlay-title">Processing</h3>
+                <p id="overlay-desc" class="text-xs text-slate-400 mt-1">Linguistic computation is executing. Please do not close this window.</p>
             </div>
         </div>
     </div>
 
+    <!-- Script Implementation Modules -->
     <script type="module">
         import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
 
-        const HARDCODED_MODEL = "Llama-3.2-3B-Instruct-q4f16_1-MLC";
+        // Hardcoding Llama 3.2 1B for blistering speeds inside standard browsers
+        const HARDCODED_MODEL = "Llama-3.2-1B-Instruct-q4f16_1-MLC";
         
-        // Auto-configuration profiles
+        // Auto-configuration paths for Supabase
         const HARDCODED_SUPABASE_URL = "https://uymqletxnxgeofdcsyzs.supabase.co";
-        const HARDCODED_SUPABASE_KEY = "sb_publishable_3RIcoA4SHc0GjlR0zl5KXQ_rtusUSVR"
+        const HARDCODED_SUPABASE_KEY = "sb_publishable_3RIcoA4SHc0GjlR0zl5KXQ_rtusUSVR";
         
         const CLASSIFICATION_PROMPT = `You are an expert in morphology and lexical semantics.
 Rate the **semantic transparency** of the target word relative to its baseword on a scale from **0 to 5**. The definitions are from the research article "How Many Words Are There in Printed School English?", William E. Nagy and Richard C. Anderson, Reading Research Quarterly, Vol. 19, No. 3 (Spring, 1984), pp. 304-330.
 
-**Output format (exactly one line, tab-separated):**
-TARGET_WORD\tRATING\tCOMMENT
-Where COMMENT is 1–2 short sentences explaining your reasoning.
+You must respond with EXACTLY this structure: [Rating] | [Short Comment]
+Do not write anything else. Do not write intros or explanations.
+Example: 4.0 | Derived from the root but the relationship is distantly connected.
 
 ---
 SEM 0–5 definitions:
 SEM 0
-This indicates that the semantic relationship between target word and baseword is semantically transparent. There are no semantic features in the target word that are not found in the baseword, with the possible exception of any semantic features that would be totally predictable from a change in part of speech.
+Relationship is fully semantically transparent. No additional semantic features.
 Examples: senselessly/senseless, chlorination/chlorinate
 
 SEM 1
-This code means that the meaning of the target item could be inferred from the meaning of its baseword with some, but minimal, help from context; almost any context should do. Any semantic components in the target word beyond those in the baseword, or different from them, would be trivial and predictable even without help from context.
+Meaning could be inferred from baseword with minimal context. Beyond baseword is trivial/predictable.
 Examples: geneticist/genetic, fragmentary/fragment
 
 SEM 2
-This code means that the meaning of the target item could be inferred from the meaning of its baseword with reasonable help from the context; “one exposure learning” would be possible. The target word may contain nontrivial semantic features different from or in addition to the semantic features in the baseword, but these would require only a general sort of contextual information to be inferred.
+Meaning could be inferred with reasonable context.
 Examples: foglights/fog, uncountables/uncountable
 
 SEM 3
-This code means that the meaning of the target item included semantic features that were not inferrable from the meaning of the baseword without substantial help from the context.
+Included semantic features not inferrable without substantial context.
 Examples: theorist/theory, password/pass, copperhead/copper
 
 SEM 4
-This code means that the meaning of the target word is related to the meaning of its baseword, but only distantly. The relationship would probably not be apparent without being pointed out, and one would definitely not be likely to guess the exact meaning of the target word if one knew only the meaning of the baseword.
+Meaning is related, but only distantly. Relationship not apparent without being pointed out.
 Examples: vicious/vice, farewell/well, motley/mottle, inertia/inert, saucer/sauce.
 
 SEM 5
-This code is used for a lack of any discernible semantic connection—cases in which the meaning of the baseword would be of no use in learning or remembering the meaning of the target word.
+Lack of any discernible semantic connection.
 Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
 
         let llmEngine = null;
@@ -192,6 +234,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         let activeTab = 'single';
         let databaseRecords = [];
 
+        // DOM Nodes lookup
         const btnInitEngine = document.getElementById('btn-init-engine');
         const engineLoadingUi = document.getElementById('engine-loading-ui');
         const engineProgressText = document.getElementById('engine-progress-text');
@@ -202,6 +245,8 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         const dbStatusText = document.getElementById('db-status-text');
         const supabaseUrlInput = document.getElementById('supabase-url');
         const supabaseKeyInput = document.getElementById('supabase-key');
+        const btnToggleConfig = document.getElementById('btn-toggle-config');
+        const configPanel = document.getElementById('config-panel');
         
         const tabSingle = document.getElementById('tab-single');
         const tabBatch = document.getElementById('tab-batch');
@@ -225,6 +270,10 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         const overlayTitle = document.getElementById('overlay-title');
         const overlayDesc = document.getElementById('overlay-desc');
 
+        const notificationBanner = document.getElementById('notification-banner');
+        const notificationText = document.getElementById('notification-text');
+        const notificationStyle = document.getElementById('notification-style');
+
         function initApp() {
             loadLocalRecords();
             bindEvents();
@@ -233,7 +282,10 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             if (HARDCODED_SUPABASE_URL && HARDCODED_SUPABASE_KEY) {
                 supabaseUrlInput.value = HARDCODED_SUPABASE_URL;
                 supabaseKeyInput.value = HARDCODED_SUPABASE_KEY;
-                configureSupabase();
+                configureSupabase(true); // silent initial load
+            } else {
+                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-slate-600";
+                dbStatusText.innerText = "LocalStorage Standalone Mode";
             }
         }
 
@@ -241,48 +293,62 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             tabSingle.addEventListener('click', () => switchTab('single'));
             tabBatch.addEventListener('click', () => switchTab('batch'));
             btnInitEngine.addEventListener('click', initializeWebLLMEngine);
-            btnConnectDb.addEventListener('click', configureSupabase);
+            btnConnectDb.addEventListener('click', () => configureSupabase(false));
             btnProcessSingle.addEventListener('click', handleSingleSubmission);
             btnProcessBatch.addEventListener('click', handleBatchSubmission);
             btnExportCsv.addEventListener('click', downloadCSVExport);
             btnClearLocal.addEventListener('click', clearLocalDataPool);
+            btnToggleConfig.addEventListener('click', () => configPanel.classList.toggle('hidden'));
+        }
+
+        function showMessage(text, isError = false) {
+            notificationText.innerText = text;
+            if (isError) {
+                notificationStyle.className = "p-3 rounded-lg text-xs font-semibold flex items-center justify-between bg-rose-500/10 text-rose-400 border border-rose-500/20";
+            } else {
+                notificationStyle.className = "p-3 rounded-lg text-xs font-semibold flex items-center justify-between bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            }
+            notificationBanner.classList.remove('hidden');
+            setTimeout(() => notificationBanner.classList.add('hidden'), 5000);
         }
 
         function switchTab(target) {
             activeTab = target;
             if (target === 'single') {
-                tabSingle.className = "flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 focus:outline-none";
-                tabBatch.className = "flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600 focus:outline-none";
+                tabSingle.className = "flex-1 pb-2.5 text-indigo-400 border-b-2 border-indigo-500 focus:outline-none";
+                tabBatch.className = "flex-1 pb-2.5 text-slate-500 border-b-2 border-transparent hover:text-slate-300 focus:outline-none";
                 panelSingle.classList.remove('hidden');
                 panelBatch.classList.add('hidden');
             } else {
-                tabBatch.className = "flex-1 pb-2 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 focus:outline-none";
-                tabSingle.className = "flex-1 pb-2 font-bold text-sm text-gray-400 border-b-2 border-transparent hover:text-gray-600 focus:outline-none";
+                tabBatch.className = "flex-1 pb-2.5 text-indigo-400 border-b-2 border-indigo-500 focus:outline-none";
+                tabSingle.className = "flex-1 pb-2.5 text-slate-500 border-b-2 border-transparent hover:text-slate-300 focus:outline-none";
                 panelBatch.classList.remove('hidden');
                 panelSingle.classList.add('hidden');
             }
         }
 
-        async function configureSupabase() {
+        async function configureSupabase(isSilent = false) {
             const url = supabaseUrlInput.value.trim();
             const key = supabaseKeyInput.value.trim();
             
             if(!url || !key) {
-                alert("Please provide valid Supabase Credentials to hook external tables.");
+                if (!isSilent) showMessage("Credentials cannot be left empty.", true);
                 return;
             }
 
             try {
                 supabaseClient = window.supabase.createClient(url, key);
-                dbStatusDot.className = "h-2 w-2 rounded-full bg-emerald-400";
-                dbStatusText.innerText = "Connected to Supabase Cluster Active Pools";
+                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40";
+                dbStatusText.innerText = "Syncing to Cloud";
+                
                 await syncSupabaseRecords();
+                if (!isSilent) showMessage("Connected successfully to Supabase. Records synced!");
             } catch (err) {
-                console.error("Supabase Initialization Error Context: ", err);
-                alert("Failed connecting to target Supabase server. Reverting to standalone Local storage arrays.");
-                dbStatusDot.className = "h-2 w-2 rounded-full bg-red-400";
-                dbStatusText.innerText = "Connection Failed Context Error";
+                console.error("Supabase Init Error: ", err);
+                dbStatusDot.className = "h-2.5 w-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/40";
+                dbStatusText.innerText = "Connection Failed";
                 supabaseClient = null;
+                if (!isSilent) showMessage("Failed to connect to Supabase. Reverted to browser memory storage.", true);
             }
         }
 
@@ -301,18 +367,21 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 });
 
                 engineLoadingUi.innerHTML = `
-                    <div class="flex items-center gap-2 text-emerald-700 text-sm font-bold justify-center py-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        Engine Ready: ${HARDCODED_MODEL}
+                    <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold justify-center py-1">
+                        <svg class="w-4 h-4 text-emerald-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Engine Ready: 1B High-Speed Active
                     </div>
                 `;
                 
                 btnProcessSingle.removeAttribute('disabled');
                 btnProcessBatch.removeAttribute('disabled');
+                showMessage("High-Speed engine warmed up and ready.");
 
             } catch (error) {
-                console.error("WebLLM Core Crash Fault Exception Context: ", error);
-                alert(`WebLLM Failed to initialize: ${error.message || error}. Please ensure your browser supports WebGPU.`);
+                console.error("WebLLM Core Fault Exception:", error);
+                showMessage(`WebLLM failed: ensure your browser supports WebGPU.`, true);
                 btnInitEngine.classList.remove('hidden');
                 engineLoadingUi.classList.add('hidden');
             }
@@ -323,18 +392,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             const baseword = inputBaseword.value.trim();
 
             if (!word || !baseword) {
-                alert("Both target word and baseword values must be provided.");
+                showMessage("Please supply both target word and baseword.", true);
                 return;
             }
 
-            showOverlay("Evaluating Pair", `Analyzing linguistic composition link structural parameters for: ${word} / ${baseword}`);
+            showOverlay("Evaluating", `Analyzing relationship: ${word} / ${baseword}`);
             
             try {
                 await evaluatePair(word, baseword);
                 inputWord.value = "";
                 inputBaseword.value = "";
             } catch (ex) {
-                alert(`Processing failed: ${ex.message}`);
+                showMessage(`Execution fault: ${ex.message}`, true);
             } finally {
                 hideOverlay();
             }
@@ -348,7 +417,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 let trimmed = rawLine.trim();
                 if (!trimmed) continue;
                 
-                let parts = trimmed.includes('\t') ? trimmed.split('\t') : trimmed.split(',');
+                // Extract pairs separated by comma, colon, or tab
+                let parts = [];
+                if (trimmed.includes('\t')) {
+                    parts = trimmed.split('\t');
+                } else if (trimmed.includes(',')) {
+                    parts = trimmed.split(',');
+                } else if (trimmed.includes(':')) {
+                    parts = trimmed.split(':');
+                } else {
+                    parts = trimmed.split(/\s+/); // Fallback to whitespace separation
+                }
+
                 if (parts.length >= 2) {
                     targetQueue.push({
                         word: parts[0].trim(),
@@ -358,21 +438,22 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             }
 
             if (targetQueue.length === 0) {
-                alert("Could not extract clean word pairs. Double-check your list format (comma or tab separated).");
+                showMessage("No valid word pairs matched the format rules.", true);
                 return;
             }
 
-            showOverlay("Batch Running", `Evaluating index processing items elements lists. Total queue metrics: ${targetQueue.length} records.`);
+            showOverlay("Queue Running", `Starting processing sequence. Total: ${targetQueue.length} records.`);
 
             try {
                 for (let i = 0; i < targetQueue.length; i++) {
                     const item = targetQueue[i];
-                    overlayDesc.innerText = `Processing element row [${i + 1}/${targetQueue.length}]: ${item.word} / ${item.baseword}`;
+                    overlayDesc.innerText = `Processing pair [${i + 1}/${targetQueue.length}]: ${item.word} / ${item.baseword}`;
                     await evaluatePair(item.word, item.baseword);
                 }
                 inputBatchText.value = "";
+                showMessage(`Successfully rated and synchronized ${targetQueue.length} word-baseword pairs.`);
             } catch (ex) {
-                alert(`Batch sequence stopped due to execution interruption exception error: ${ex.message}`);
+                showMessage(`Batch processing cut short: ${ex.message}`, true);
             } finally {
                 hideOverlay();
             }
@@ -382,13 +463,14 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             const normalizedWord = word.toLowerCase().trim();
             const normalizedBase = baseword.toLowerCase().trim();
 
+            // Prevent redundant queries of already processed content
             const existingMatch = findCachedEntry(normalizedWord, normalizedBase);
             if (existingMatch) {
-                console.log(`Match found in database logs cache for: ${normalizedWord}`);
+                console.log(`Matching record located inside local memory for: ${normalizedWord} / ${normalizedBase}`);
                 return;
             }
 
-            let rating = 0;
+            let rating = 0.0;
             let comment = "";
 
             const userPromptText = `Now rate the following item:\nTarget word: ${normalizedWord}\nBaseword: ${normalizedBase}`;
@@ -400,39 +482,35 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
 
             const response = await llmEngine.chat.completions.create({
                 messages: messagePayload,
-                temperature: 0.0,
-                max_completion_tokens: 250
+                temperature: 0.0, // strictly deterministic outputs
+                max_completion_tokens: 150
             });
 
-            const llmOutputString = response.choices[0].message.content.trim();
-            console.log("Raw Model System Output Matrix:\n", llmOutputString);
+            const rawOutput = response.choices[0].message.content.trim();
+            console.log("Raw LLM Generation Log:", rawOutput);
 
-            const lines = llmOutputString.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-            let parsedCorrectly = false;
-
-            for (const line of lines) {
-                if (line.includes('\t')) {
-                    const structuralTokens = line.split('\t');
-                    if (structuralTokens.length >= 2) {
-                        const parsedRating = parseFloat(structuralTokens[1].trim());
-                        if (!isNaN(parsedRating) && parsedRating >= 0 && parsedRating <= 5.5) {
-                            rating = parsedRating;
-                            comment = structuralTokens[2] ? structuralTokens[2].trim() : "No comment logic parsed.";
-                            parsedCorrectly = true;
-                            break;
-                        }
+            // Robust split logic using standard pipe "|" formatting
+            if (rawOutput.includes('|')) {
+                const structuralTokens = rawOutput.split('|');
+                if (structuralTokens.length >= 2) {
+                    const parsedRating = parseFloat(structuralTokens[0].trim());
+                    if (!isNaN(parsedRating) && parsedRating >= 0 && parsedRating <= 5.5) {
+                        rating = parsedRating;
+                        comment = structuralTokens[1].trim();
                     }
                 }
             }
 
-            if (!parsedCorrectly) {
-                const manualMatchRating = llmOutputString.match(/\b([0-5](?:\.\d+)?)\b/);
-                if (manualMatchRating) {
-                    rating = parseFloat(manualMatchRating[1]);
-                    comment = llmOutputString.replace(manualMatchRating[0], "").replace(word, "").replace(baseword, "").trim();
+            // High-reliability regex fallback to capture structured rating if model deviated from template
+            if (!comment) {
+                const numericMatch = rawOutput.match(/\b([0-5](?:\.\d+)?)\b/);
+                if (numericMatch) {
+                    rating = parseFloat(numericMatch[1]);
+                    // Grab remainder of output string as reasoning
+                    comment = rawOutput.replace(numericMatch[0], "").replace(/^[|:,\-\s]+/, "").trim();
                 } else {
-                    rating = 2.5;
-                    comment = "Parsing Exception: Structural validation fault on raw output string.";
+                    rating = 2.5; // neutral fallback anchor
+                    comment = rawOutput || "No linguistic reasoning retrieved.";
                 }
             }
 
@@ -462,7 +540,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                     
                     if(error) throw error;
                 } catch(supabaseErr) {
-                    console.error("Supabase Write Sync Fault Exception Error context log: ", supabaseErr);
+                    console.error("Supabase Write Sync Fault Error: ", supabaseErr);
                 }
             }
 
@@ -487,7 +565,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                     refreshDataInterface();
                 }
             } catch (err) {
-                console.error("Failed executing reading sync pipelines tables context error: ", err);
+                console.error("Supabase Read/Sync Error: ", err);
             }
         }
 
@@ -519,17 +597,17 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
                 sumOfRatings += rec.rating;
 
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-gray-50 transition border-b border-gray-100 font-mono text-xs";
+                tr.className = "hover:bg-slate-900/40 transition border-b border-slate-800/50 text-xs font-mono";
                 
                 tr.innerHTML = `
-                    <td class="p-3 font-semibold text-gray-800 font-sans">${escapeHtml(rec.target_word)}</td>
-                    <td class="p-3 text-gray-600 font-sans">${escapeHtml(rec.baseword)}</td>
-                    <td class="p-3 text-center">
-                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold font-mono ${getRatingColorClass(rec.rating)}">
+                    <td class="p-3.5 font-bold text-slate-200 font-sans text-sm">${escapeHtml(rec.target_word)}</td>
+                    <td class="p-3.5 text-slate-400 font-sans">${escapeHtml(rec.baseword)}</td>
+                    <td class="p-3.5 text-center">
+                        <span class="inline-block px-2.5 py-1 rounded font-bold font-mono text-xs ${getRatingColorClass(rec.rating)}">
                             ${rec.rating.toFixed(1)}
                         </span>
                     </td>
-                    <td class="p-3 text-gray-500 font-sans text-xs max-w-sm truncate hover:text-clip hover:whitespace-normal" title="${escapeHtml(rec.comment)}">
+                    <td class="p-3.5 text-slate-400 font-sans text-xs max-w-sm truncate hover:whitespace-normal hover:text-clip" title="${escapeHtml(rec.comment)}">
                         ${escapeHtml(rec.comment)}
                     </td>
                 `;
@@ -544,15 +622,15 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
         }
 
         function getRatingColorClass(rating) {
-            if (rating <= 1.0) return "bg-emerald-100 text-emerald-800";
-            if (rating <= 2.5) return "bg-blue-100 text-blue-800";
-            if (rating <= 4.0) return "bg-amber-100 text-amber-800";
-            return "bg-rose-100 text-rose-800";
+            if (rating <= 1.0) return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            if (rating <= 2.5) return "bg-sky-500/10 text-sky-400 border border-sky-500/20";
+            if (rating <= 4.0) return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+            return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
         }
 
         function downloadCSVExport() {
             if (databaseRecords.length === 0) {
-                alert("No structural context records pools available to export.");
+                showMessage("Database pool is empty. Nothing to export.", true);
                 return;
             }
 
@@ -566,17 +644,18 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             const csvUrl = URL.createObjectURL(csvBlob);
             const hiddenDownloadAnchor = document.createElement('a');
             hiddenDownloadAnchor.href = csvUrl;
-            hiddenDownloadAnchor.setAttribute('download', `transparency_norms_export_${new Date().toISOString().slice(0,10)}.csv`);
+            hiddenDownloadAnchor.setAttribute('download', `transparency_norms_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(hiddenDownloadAnchor);
             hiddenDownloadAnchor.click();
             document.body.removeChild(hiddenDownloadAnchor);
         }
 
         function clearLocalDataPool() {
-            if (confirm("Are you sure you want to flush local operational storage caches? Cloud records inside active connected clusters will remain untouched.")) {
+            if (confirm("Are you sure you want to flush local storage caches? Database records stored inside Supabase will remain untouched.")) {
                 localStorage.removeItem('morph_transparency_records_v1');
                 databaseRecords = [];
                 refreshDataInterface();
+                showMessage("Local cache successfully wiped.");
             }
         }
 
@@ -600,7 +679,7 @@ Examples: clerical/cleric, groovy/groove, dashboard/dash.`;
             processingOverlay.classList.add('hidden');
         }
 
-        // Initialize App Pipeline runtime on load completion context
+        // Initialize setup logic on load
         initApp();
     </script>
 </body>
